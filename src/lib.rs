@@ -216,7 +216,16 @@ where
             Instruction::CDI,
             &[if inverted { 0b01_01_1100 } else { 0b01_00_1100 }],
         )?;
-        self.command(Instruction::PLL, &[pll_flags::HZ_100])?;
+
+        match speed {
+            LUT::Default | LUT::Medium => {
+                self.command(Instruction::PLL, &[pll_flags::HZ_100])?;
+            }
+            LUT::Fast | LUT::Ultrafast => {
+                self.command(Instruction::PLL, &[pll_flags::HZ_200])?;
+            }
+        }
+
         self.command(Instruction::POF, &[])?;
 
         while self.is_busy() {}
