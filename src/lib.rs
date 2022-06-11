@@ -108,6 +108,28 @@ where
         while self.is_busy() {}
     }
 
+    // To do read we need to convert the SPI pins back to GPIO and bit-bang
+    // since the data comes back over the MOSI pin.
+    // Awkward.
+    // Might be easiest to bitbang the command as well?
+    // Not going there yet.
+
+    // pub fn read(&mut self, reg: Instruction, data: &mut[u8]) -> Result<(), SpiDataError> {
+    //     let _ = self.cs.set_low();
+    //     let _ = self.dc.set_low(); // command mode
+    //     self.spi
+    //         .write(&[reg as u8])
+    //         .map_err(|_| SpiDataError::SpiError)?;
+
+    //     if !data.is_empty() {
+    //         let _ = self.dc.set_high(); // data mode
+    //         self.spi.write(data).map_err(|_| SpiDataError::SpiError)?;
+    //     }
+
+    //     let _ = self.cs.set_high();
+    //     Ok(())
+    // }
+
     pub fn command(&mut self, reg: Instruction, data: &[u8]) -> Result<(), SpiDataError> {
         let _ = self.cs.set_low();
         let _ = self.dc.set_low(); // command mode
@@ -146,7 +168,7 @@ where
         self.lut = speed;
 
         let init_cmd = if speed == LUT::Default {
-            psrflags::LUT_OTP 
+            psrflags::LUT_OTP
         } else {
             psrflags::LUT_REG
         } | psrflags::RES_128X296
@@ -165,10 +187,8 @@ where
         self.command(
             Instruction::PWR,
             &[
-                pwr_flags_1::VDS_INTERNAL
-                    | pwr_flags_1::VDG_INTERNAL
-                    | pwr_flags_2::VCOM_VD
-                    | pwr_flags_2::VGHL_16V,
+                pwr_flags_1::VDS_INTERNAL | pwr_flags_1::VDG_INTERNAL,
+                pwr_flags_2::VCOM_VD | pwr_flags_2::VGHL_16V,
                 0b101011,
                 0b101011,
                 0b101011,
@@ -203,9 +223,11 @@ where
         Ok(())
     }
 
+    // There was a poweroff function that's just off without blocking
+    // Won't add it until non-blocking mode added
+
     pub fn off(&mut self) -> Result<(), SpiDataError> {
         while self.is_busy() {}
-
         self.command(Instruction::POF, &[])?;
         Ok(())
     }
@@ -245,15 +267,5 @@ where
 
         self.command(Instruction::POF, &[])?; // turn off
         Ok(())
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
     }
 }
