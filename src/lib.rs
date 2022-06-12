@@ -117,28 +117,6 @@ where
         while self.is_busy() {}
     }
 
-    // To do read we need to convert the SPI pins back to GPIO and bit-bang
-    // since the data comes back over the MOSI pin.
-    // Awkward.
-    // Might be easiest to bitbang the command as well?
-    // Not going there yet.
-
-    // pub fn read(&mut self, reg: Instruction, data: &mut[u8]) -> Result<(), SpiDataError> {
-    //     let _ = self.cs.set_low();
-    //     let _ = self.dc.set_low(); // command mode
-    //     self.spi
-    //         .write(&[reg as u8])
-    //         .map_err(|_| SpiDataError::SpiError)?;
-
-    //     if !data.is_empty() {
-    //         let _ = self.dc.set_high(); // data mode
-    //         self.spi.write(data).map_err(|_| SpiDataError::SpiError)?;
-    //     }
-
-    //     let _ = self.cs.set_high();
-    //     Ok(())
-    // }
-
     pub fn command(&mut self, reg: Instruction, data: &[u8]) -> Result<(), SpiDataError> {
         let _ = self.cs.set_low();
         let _ = self.dc.set_low(); // command mode
