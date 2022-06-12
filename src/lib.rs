@@ -245,7 +245,7 @@ where
 
         let o: u8 = 7 - (y as u8 & 0b111); // bit offset within byte
         let m: u8 = !(1 << o); // bit mask for byte
-        let b: u8 = if v { 0 } else { 1 } << o; // bit value shifted to position
+        let b: u8 = (v as u8) << o; // bit value shifted to position
 
         self.framebuffer[address] = (self.framebuffer[address] & m) | b;
     }
