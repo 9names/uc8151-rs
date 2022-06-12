@@ -39,8 +39,8 @@ pub enum SpiDataError {
 }
 
 // RES_128X296 1bit per pixel
-pub const WIDTH: u32 = 128;
-pub const HEIGHT: u32 = 296;
+pub const WIDTH: u32 = 296;
+pub const HEIGHT: u32 = 128;
 const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
 impl<SPI, CS, DC, BUSY, RESET> Uc8151<SPI, CS, DC, BUSY, RESET>
