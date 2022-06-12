@@ -11,10 +11,16 @@ use embedded_hal::digital::v2::OutputPin;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum LUT {
-    Default,   // DEFAULT_LUT
-    Medium,    // MEDIUM_LUT
-    Fast,      // FAST_LUT
-    Ultrafast, // ULTRA_LUT
+    /// DEFAULT_LUT (OTP memory)
+    Internal,
+    /// DEFAULT_LUT
+    Normal,
+    /// MEDIUM_LUT
+    Medium,
+    /// FAST_LUT
+    Fast,
+    /// ULTRA_LUT
+    Ultrafast,
 }
 
 pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
@@ -51,7 +57,7 @@ where
             dc,
             busy,
             reset,
-            lut: LUT::Default,
+            lut: LUT::Internal,
         }
     }
 
@@ -71,7 +77,8 @@ where
 
     pub fn get_lut(&self) -> &'static Lut {
         match self.lut {
-            LUT::Default => &DEFAULT_LUT,
+            LUT::Internal => &DEFAULT_LUT,
+            LUT::Normal => &DEFAULT_LUT,
             LUT::Medium => &MEDIUM_LUT,
             LUT::Fast => &FAST_LUT,
             LUT::Ultrafast => &ULTRA_LUT,
@@ -167,11 +174,13 @@ where
         self.reset(delay_source);
         self.lut = speed;
 
-        let init_cmd = if speed == LUT::Default {
+        let lut_type = if speed == LUT::Internal {
             psrflags::LUT_OTP
         } else {
             psrflags::LUT_REG
-        } | psrflags::RES_128X296
+        };
+        let init_cmd = lut_type
+            | psrflags::RES_128X296
             | psrflags::FORMAT_BW
             | psrflags::SHIFT_RIGHT
             | psrflags::BOOSTER_ON
@@ -179,8 +188,8 @@ where
 
         self.command(Instruction::PSR, &[init_cmd])?;
 
-        // No need to change to default LUT on reset, the display is already using it
-        if self.lut != LUT::Default {
+        // No need to load a LUT if using internal one-time-programmable memory
+        if self.lut != LUT::Internal {
             self.update_speed()?;
         }
 
