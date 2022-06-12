@@ -244,7 +244,7 @@ pub const FAST_LUT: Lut = Lut {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ],
     update_time: 800,
-    pll: pll_flags::HZ_200,
+    pll: pll_flags::HZ_100, // TODO: work out why this doesn't work at 200hz
 };
 
 pub const ULTRA_LUT: Lut = Lut {
@@ -274,5 +274,5 @@ pub const ULTRA_LUT: Lut = Lut {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ],
     update_time: 250,
-    pll: pll_flags::HZ_200,
+    pll: pll_flags::HZ_100, // TODO: work out why these don't work at 200hz
 };
