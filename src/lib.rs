@@ -167,10 +167,6 @@ where
         delay_source: &mut impl DelayUs<u32>,
         speed: LUT,
     ) -> Result<(), SpiDataError> {
-        (0..FRAME_BUFFER_SIZE as usize).for_each(|i| unsafe {
-            FRAME_BUFFER[i] = 0xff;
-        });
-
         self.reset(delay_source);
         self.lut = speed;
 
