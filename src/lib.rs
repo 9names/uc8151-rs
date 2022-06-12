@@ -31,6 +31,8 @@ pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
     pub reset: RESET,
     pub lut: LUT,
 }
+
+#[derive(Debug)]
 pub enum SpiDataError {
     SpiError,
 }
