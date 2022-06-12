@@ -24,6 +24,7 @@ pub enum LUT {
 }
 
 pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
+    framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
     pub spi: SPI,
     pub cs: CS,
     pub dc: DC,
@@ -37,12 +38,10 @@ pub enum SpiDataError {
     SpiError,
 }
 
-// fakey framebuffer until i get E-G working
-// RES_128X296
-const WIDTH: u32 = 128;
-const HEIGHT: u32 = 296;
+// RES_128X296 1bit per pixel
+pub const WIDTH: u32 = 128;
+pub const HEIGHT: u32 = 296;
 const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
-static mut FRAME_BUFFER: [u8; FRAME_BUFFER_SIZE as usize] = [0; FRAME_BUFFER_SIZE as usize];
 
 impl<SPI, CS, DC, BUSY, RESET> Uc8151<SPI, CS, DC, BUSY, RESET>
 where
@@ -54,6 +53,7 @@ where
 {
     pub fn new(spi: SPI, cs: CS, dc: DC, busy: BUSY, reset: RESET) -> Self {
         Self {
+            framebuffer: [0; FRAME_BUFFER_SIZE as usize],
             spi,
             cs,
             dc,
@@ -164,6 +164,23 @@ where
         Ok(())
     }
 
+    /// Send the data that is currently in the framebuffer to the screen
+    pub fn transmit_framebuffer(&mut self) -> Result<(), SpiDataError> {
+        let _ = self.cs.set_low();
+        let _ = self.dc.set_low(); // command mode
+        self.spi
+            .write(&[Instruction::DTM2 as u8])
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.dc.set_high(); // data mode
+        self.spi
+            .write(&self.framebuffer)
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.cs.set_high();
+        Ok(())
+    }
+
     pub fn setup(
         &mut self,
         delay_source: &mut impl DelayUs<u32>,
@@ -252,10 +269,7 @@ where
         let m: u8 = !(1 << o); // bit mask for byte
         let b: u8 = if v { 0 } else { 1 } << o; // bit value shifted to position
 
-        let value = unsafe { FRAME_BUFFER[address] };
-        unsafe {
-            FRAME_BUFFER[address] = (value & m) | b;
-        }
+        self.framebuffer[address] = (self.framebuffer[address] & m) | b;
     }
 
     pub fn update(&mut self) -> Result<(), SpiDataError> {
@@ -265,9 +279,8 @@ where
         self.command(Instruction::PON, &[])?; // turn on
         self.command(Instruction::PTOU, &[])?; // disable partial mode
 
-        unsafe {
-            self.command(Instruction::DTM2, &FRAME_BUFFER)?; // transmit framebuffer
-        }
+        self.transmit_framebuffer()?;
+
         self.command(Instruction::DSP, &[])?; // data stop
 
         self.command(Instruction::DRF, &[])?; // start display refresh
