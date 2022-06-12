@@ -43,38 +43,46 @@ pub enum Instruction {
 }
 
 pub mod psrflags {
-    pub const RES_96X230: PsrFlags = 0;
-    pub const RES_96X252: PsrFlags = 64;
-    pub const RES_128X296: PsrFlags = 128;
-    pub const RES_160X296: PsrFlags = 192;
+    pub const RES_96X230: PsrFlags = 0b00000000;
+    pub const RES_96X252: PsrFlags = 0b01000000;
+    pub const RES_128X296: PsrFlags = 0b10000000;
+    pub const RES_160X296: PsrFlags = 0b11000000;
+
     /// Use lookup table from OTP memory
-    pub const LUT_OTP: PsrFlags = 0;
+    pub const LUT_OTP: PsrFlags = 0b00000000;
     /// Use lookup table from Register
-    pub const LUT_REG: PsrFlags = 32;
-    pub const FORMAT_BWR: PsrFlags = 0;
-    pub const FORMAT_BW: PsrFlags = 16;
-    pub const SCAN_DOWN: PsrFlags = 0;
-    pub const SCAN_UP: PsrFlags = 8;
-    pub const SHIFT_LEFT: PsrFlags = 0;
-    pub const SHIFT_RIGHT: PsrFlags = 4;
-    pub const BOOSTER_OFF: PsrFlags = 0;
-    pub const BOOSTER_ON: PsrFlags = 2;
-    pub const RESET_SOFT: PsrFlags = 0;
-    pub const RESET_NONE: PsrFlags = 1;
+    pub const LUT_REG: PsrFlags = 0b00100000;
+
+    pub const FORMAT_BWR: PsrFlags = 0b00000000;
+    pub const FORMAT_BW: PsrFlags = 0b00010000;
+
+    pub const SCAN_DOWN: PsrFlags = 0b00000000;
+    pub const SCAN_UP: PsrFlags = 0b00001000;
+
+    pub const SHIFT_LEFT: PsrFlags = 0b00000000;
+    pub const SHIFT_RIGHT: PsrFlags = 0b00000100;
+
+    pub const BOOSTER_OFF: PsrFlags = 0b00000000;
+    pub const BOOSTER_ON: PsrFlags = 0b00000010;
+
+    pub const RESET_SOFT: PsrFlags = 0b00000000;
+    pub const RESET_NONE: PsrFlags = 0b00000001;
     pub type PsrFlags = u8;
 }
 
 pub mod pwr_flags_1 {
-    pub const VDS_EXTERNAL: PwrFlags1 = 0;
+    pub const VDS_EXTERNAL: PwrFlags1 = 0b00000000;
     pub const VDS_INTERNAL: PwrFlags1 = 2;
-    pub const VDG_EXTERNAL: PwrFlags1 = 0;
+
+    pub const VDG_EXTERNAL: PwrFlags1 = 0b00000000;
     pub const VDG_INTERNAL: PwrFlags1 = 1;
     pub type PwrFlags1 = u8;
 }
 
 pub mod pwr_flags_2 {
-    pub const VCOM_VD: PwrFlags2 = 0;
+    pub const VCOM_VD: PwrFlags2 = 0b00000000;
     pub const VCOM_VG: PwrFlags2 = 4;
+
     pub const VGHL_16V: PwrFlags2 = 0;
     pub const VGHL_15V: PwrFlags2 = 1;
     pub const VGHL_14V: PwrFlags2 = 2;
@@ -83,18 +91,20 @@ pub mod pwr_flags_2 {
 }
 
 pub mod booster_flags {
-    pub const START_10MS: BoosterFlags = 0;
-    pub const START_20MS: BoosterFlags = 64;
-    pub const START_30MS: BoosterFlags = 128;
-    pub const START_40MS: BoosterFlags = 192;
-    pub const STRENGTH_1: BoosterFlags = 0;
-    pub const STRENGTH_2: BoosterFlags = 8;
-    pub const STRENGTH_3: BoosterFlags = 16;
-    pub const STRENGTH_4: BoosterFlags = 24;
-    pub const STRENGTH_5: BoosterFlags = 32;
-    pub const STRENGTH_6: BoosterFlags = 40;
-    pub const STRENGTH_7: BoosterFlags = 48;
-    pub const STRENGTH_8: BoosterFlags = 56;
+    pub const START_10MS: BoosterFlags = 0b00000000;
+    pub const START_20MS: BoosterFlags = 0b01000000;
+    pub const START_30MS: BoosterFlags = 0b10000000;
+    pub const START_40MS: BoosterFlags = 0b11000000;
+
+    pub const STRENGTH_1: BoosterFlags = 0b00000000;
+    pub const STRENGTH_2: BoosterFlags = 0b00001000;
+    pub const STRENGTH_3: BoosterFlags = 0b00010000;
+    pub const STRENGTH_4: BoosterFlags = 0b00011000;
+    pub const STRENGTH_5: BoosterFlags = 0b00100000;
+    pub const STRENGTH_6: BoosterFlags = 0b00101000;
+    pub const STRENGTH_7: BoosterFlags = 0b00110000;
+    pub const STRENGTH_8: BoosterFlags = 0b00111000;
+
     pub const OFF_0_27US: BoosterFlags = 0;
     pub const OFF_0_34US: BoosterFlags = 1;
     pub const OFF_0_40US: BoosterFlags = 2;
@@ -107,16 +117,16 @@ pub mod booster_flags {
 }
 
 pub mod pfs_flags {
-    pub const FRAMES_1: PfsFlags = 0;
-    pub const FRAMES_2: PfsFlags = 16;
-    pub const FRAMES_3: PfsFlags = 32;
-    pub const FRAMES_4: PfsFlags = 48;
+    pub const FRAMES_1: PfsFlags = 0b00000000;
+    pub const FRAMES_2: PfsFlags = 0b00010000;
+    pub const FRAMES_3: PfsFlags = 0b00100000;
+    pub const FRAMES_4: PfsFlags = 0b00110000;
     pub type PfsFlags = u8;
 }
 
 pub mod tse_flags {
-    pub const TEMP_INTERNAL: TseFlags = 0;
-    pub const TEMP_EXTERNAL: TseFlags = 128;
+    pub const TEMP_INTERNAL: TseFlags = 0b00000000;
+    pub const TEMP_EXTERNAL: TseFlags = 0b10000000;
     pub const OFFSET_0: TseFlags = 0;
     pub const OFFSET_1: TseFlags = 1;
     pub const OFFSET_2: TseFlags = 2;
@@ -125,6 +135,7 @@ pub mod tse_flags {
     pub const OFFSET_5: TseFlags = 5;
     pub const OFFSET_6: TseFlags = 6;
     pub const OFFSET_7: TseFlags = 7;
+
     pub const OFFSET_MIN_8: TseFlags = 8;
     pub const OFFSET_MIN_7: TseFlags = 9;
     pub const OFFSET_MIN_6: TseFlags = 10;
@@ -137,13 +148,14 @@ pub mod tse_flags {
 }
 
 pub mod pll_flags {
-    pub const HZ_29: PllFlags = 63;
-    pub const HZ_33: PllFlags = 62;
-    pub const HZ_40: PllFlags = 61;
-    pub const HZ_50: PllFlags = 60;
-    pub const HZ_67: PllFlags = 59;
-    pub const HZ_100: PllFlags = 58;
-    pub const HZ_200: PllFlags = 57;
+    pub const HZ_29: PllFlags = 0b00_111_111;
+    pub const HZ_33: PllFlags = 0b00_111_110;
+    pub const HZ_40: PllFlags = 0b00_111_101;
+    pub const HZ_50: PllFlags = 0b00_111_100;
+    pub const HZ_67: PllFlags = 0b00_111_011;
+    pub const HZ_100: PllFlags = 0b00_111_010;
+    pub const HZ_150: PllFlags = 0b00_101_001;
+    pub const HZ_200: PllFlags = 0b00_111_001;
     pub type PllFlags = u8;
 }
 
