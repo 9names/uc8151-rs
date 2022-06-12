@@ -154,6 +154,7 @@ pub struct Lut {
     pub wb: [u8; 42],
     pub bb: [u8; 42],
     pub update_time: u16,
+    pub pll: pll_flags::PllFlags,
 }
 
 pub const DEFAULT_LUT: Lut = Lut {
@@ -183,6 +184,7 @@ pub const DEFAULT_LUT: Lut = Lut {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ],
     update_time: 4500,
+    pll: pll_flags::HZ_100,
 };
 
 pub const MEDIUM_LUT: Lut = Lut {
@@ -212,6 +214,7 @@ pub const MEDIUM_LUT: Lut = Lut {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ],
     update_time: 2000,
+    pll: pll_flags::HZ_100,
 };
 
 pub const FAST_LUT: Lut = Lut {
@@ -241,6 +244,7 @@ pub const FAST_LUT: Lut = Lut {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ],
     update_time: 800,
+    pll: pll_flags::HZ_200,
 };
 
 pub const ULTRA_LUT: Lut = Lut {
@@ -270,4 +274,5 @@ pub const ULTRA_LUT: Lut = Lut {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ],
     update_time: 250,
+    pll: pll_flags::HZ_200,
 };
