@@ -5,3 +5,8 @@ edition = "2021"
 
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
+embedded-graphics-core = { version = "0.3.3", optional = true }
+
+[features]
+default = ["graphics"]
+graphics = ["embedded-graphics-core"]

@@ -9,6 +9,15 @@ use embedded_hal::blocking::spi::Write;
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal::digital::v2::OutputPin;
 
+#[cfg(feature = "graphics")]
+use embedded_graphics_core::{
+    draw_target::DrawTarget,
+    geometry::Size,
+    geometry::{Dimensions, OriginDimensions},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum LUT {
     /// DEFAULT_LUT (OTP memory)
@@ -267,5 +276,46 @@ where
 
         self.command(Instruction::POF, &[])?; // turn off
         Ok(())
+    }
+}
+
+#[cfg(feature = "graphics")]
+impl<SPI, CS, DC, BUSY, RESET> DrawTarget for Uc8151<SPI, CS, DC, BUSY, RESET>
+where
+    SPI: Write<u8>,
+    CS: OutputPin,
+    DC: OutputPin,
+    BUSY: InputPin,
+    RESET: OutputPin,
+{
+    type Color = BinaryColor;
+    type Error = core::convert::Infallible;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        let bb = self.bounding_box();
+
+        pixels
+            .into_iter()
+            .filter(|Pixel(pos, _color)| bb.contains(*pos))
+            .for_each(|Pixel(pos, color)| self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::On));
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "graphics")]
+impl<SPI, CS, DC, BUSY, RESET> OriginDimensions for Uc8151<SPI, CS, DC, BUSY, RESET>
+where
+    SPI: Write<u8>,
+    CS: OutputPin,
+    DC: OutputPin,
+    BUSY: InputPin,
+    RESET: OutputPin,
+{
+    fn size(&self) -> Size {
+        Size::new(WIDTH, HEIGHT)
     }
 }
