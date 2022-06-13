@@ -300,7 +300,9 @@ where
         pixels
             .into_iter()
             .filter(|Pixel(pos, _color)| bb.contains(*pos))
-            .for_each(|Pixel(pos, color)| self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::On));
+            .for_each(|Pixel(pos, color)| {
+                self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::Off)
+            });
 
         Ok(())
     }
