@@ -222,11 +222,8 @@ where
             &[tse_flags::TEMP_INTERNAL | tse_flags::OFFSET_0],
         )?;
         self.command(Instruction::TCON, &[0x22])?;
-        let inverted = false; // TODO: make this a setting
-        self.command(
-            Instruction::CDI,
-            &[if inverted { 0b01_01_1100 } else { 0b01_00_1100 }],
-        )?;
+
+        self.invert_colors(true)?;
 
         self.command(Instruction::PLL, &[self.get_lut().pll])?;
 
@@ -236,6 +233,13 @@ where
         Ok(())
     }
 
+    /// Invert the colors of the screen - normal = black on white, inverted = white on black
+    pub fn invert_colors(&mut self, inverted: bool) -> Result<(), SpiDataError> {
+        self.command(
+            Instruction::CDI,
+            &[if inverted { 0b01_01_1100 } else { 0b01_00_1100 }],
+        )
+    }
     // There was a poweroff function that's just off without blocking
     // Won't add it until non-blocking mode added
 
@@ -301,7 +305,7 @@ where
             .into_iter()
             .filter(|Pixel(pos, _color)| bb.contains(*pos))
             .for_each(|Pixel(pos, color)| {
-                self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::Off)
+                self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::On)
             });
 
         Ok(())
