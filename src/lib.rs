@@ -250,7 +250,7 @@ where
         )?;
         self.command(Instruction::TCON, &[0x22])?;
 
-        self.invert_colors(true)?;
+        self.invert_colors(false)?;
 
         self.command(Instruction::PLL, &[self.get_lut().pll])?;
 
@@ -335,7 +335,7 @@ where
             .into_iter()
             .filter(|Pixel(pos, _color)| bb.contains(*pos))
             .for_each(|Pixel(pos, color)| {
-                self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::On)
+                self.pixel(pos.x as u32, pos.y as u32, color == BinaryColor::Off)
             });
 
         Ok(())
