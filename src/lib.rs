@@ -1,3 +1,10 @@
+//! This is a Rust port of the [Pimoroni UC8151 library](https://github.com/pimoroni/pimoroni-pico/tree/main/drivers/uc8151).  
+//! UC8151 is also sometimes referred to as IL0373.
+//!
+//! The current implementation only supports the particular variant used on the Pimoroni Badger2040, which uses a black and white (1bit per pixel) 128x296 pixel screen.
+//! This driver currently does not support partial updates.  
+//! Rust [embedded-graphics](https://github.com/embedded-graphics/embedded-graphics) support is enabled with the `graphics` feature, which is enabled by default.
+
 #![no_std]
 
 #[allow(warnings)]
@@ -18,6 +25,10 @@ use embedded_graphics_core::{
     prelude::*,
 };
 
+/// Screen refresh-speed configurations for the display
+///
+/// Preset configuration options for setting the refresh speed for the display.
+/// Faster refreshes will leave more of the previous image.
 #[derive(Clone, Copy, PartialEq)]
 pub enum LUT {
     /// DEFAULT_LUT (OTP memory)
@@ -32,6 +43,7 @@ pub enum LUT {
     Ultrafast,
 }
 
+/// Uc8151 driver
 pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
     framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
     pub spi: SPI,
@@ -42,13 +54,16 @@ pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
     pub lut: LUT,
 }
 
+/// An error that with the SPI data bus
 #[derive(Debug)]
 pub enum SpiDataError {
     SpiError,
 }
 
 // RES_128X296 1bit per pixel
+/// Width of the screen in pixels
 pub const WIDTH: u32 = 296;
+/// Height of the screen in pixels
 pub const HEIGHT: u32 = 128;
 const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
@@ -60,6 +75,7 @@ where
     BUSY: InputPin,
     RESET: OutputPin,
 {
+    /// Create new UC8151 instance from the given SPI and GPIO pins
     pub fn new(spi: SPI, cs: CS, dc: DC, busy: BUSY, reset: RESET) -> Self {
         Self {
             framebuffer: [0; FRAME_BUFFER_SIZE as usize],
@@ -72,20 +88,24 @@ where
         }
     }
 
+    /// Enable the display controller
     pub fn enable(&mut self) {
         // Ignoring return value for set, RP2040 GPIO is infallible
         let _ = self.reset.set_high();
     }
 
+    /// Disable the display controller
     pub fn disable(&mut self) {
         // Ignoring return value for set, RP2040 GPIO is infallible
         let _ = self.reset.set_low();
     }
 
+    /// Returns true if the display controller is busy
     pub fn is_busy(&self) -> bool {
         self.busy.is_low().unwrap_or(true)
     }
 
+    /// Return the currently selected LUT
     pub fn get_lut(&self) -> &'static Lut {
         match self.lut {
             LUT::Internal => &DEFAULT_LUT,
@@ -96,10 +116,12 @@ where
         }
     }
 
+    /// Return the currently update speed
     pub fn get_update_speed(&self) -> &Lut {
         self.get_lut()
     }
 
+    /// Return the update interval for the current LUT
     pub fn get_update_time(&self) -> u16 {
         self.get_lut().update_time
     }
@@ -116,6 +138,7 @@ where
         Ok(())
     }
 
+    /// Reset the display
     pub fn reset(&mut self, delay_source: &mut impl DelayUs<u32>) {
         self.disable();
         delay_source.delay_us(10_000);
@@ -126,6 +149,7 @@ where
         while self.is_busy() {}
     }
 
+    /// Send command via SPI to the display
     pub fn command(&mut self, reg: Instruction, data: &[u8]) -> Result<(), SpiDataError> {
         let _ = self.cs.set_low();
         let _ = self.dc.set_low(); // command mode
@@ -142,6 +166,7 @@ where
         Ok(())
     }
 
+    /// Send data via SPI to the display
     pub fn data(&mut self, data: &[u8]) -> Result<(), SpiDataError> {
         let _ = self.cs.set_low();
         let _ = self.dc.set_high(); // data mode
@@ -151,7 +176,8 @@ where
         Ok(())
     }
 
-    /// Send the data that is currently in the framebuffer to the screen
+    /// Send framebuffer to display via SPI.
+    /// This is a low-level function, call update() if you just want to update the display
     pub fn transmit_framebuffer(&mut self) -> Result<(), SpiDataError> {
         let _ = self.cs.set_low();
         let _ = self.dc.set_low(); // command mode
@@ -168,6 +194,7 @@ where
         Ok(())
     }
 
+    /// Configure the display
     pub fn setup(
         &mut self,
         delay_source: &mut impl DelayUs<u32>,
@@ -243,12 +270,14 @@ where
     // There was a poweroff function that's just off without blocking
     // Won't add it until non-blocking mode added
 
+    /// Ask the display to power itself off
     pub fn off(&mut self) -> Result<(), SpiDataError> {
         while self.is_busy() {}
         self.command(Instruction::POF, &[])?;
         Ok(())
     }
 
+    /// Set or clear the specified pixel
     pub fn pixel(&mut self, x: u32, y: u32, v: bool) {
         if x >= WIDTH || y >= HEIGHT {
             return;
@@ -263,6 +292,7 @@ where
         self.framebuffer[address] = (self.framebuffer[address] & m) | b;
     }
 
+    /// Refresh the display with what is in the framebuffer
     pub fn update(&mut self) -> Result<(), SpiDataError> {
         // if blocking
         while self.is_busy() {}
