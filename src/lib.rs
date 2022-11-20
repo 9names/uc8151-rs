@@ -2,7 +2,6 @@
 //! UC8151 is also sometimes referred to as IL0373.
 //!
 //! The current implementation only supports the particular variant used on the Pimoroni Badger2040, which uses a black and white (1bit per pixel) 128x296 pixel screen.
-//! This driver currently does not support partial updates.  
 //! Rust [embedded-graphics](https://github.com/embedded-graphics/embedded-graphics) support is enabled with the `graphics` feature, which is enabled by default.
 
 #![no_std]
@@ -10,6 +9,7 @@
 #[allow(warnings)]
 mod constants;
 use constants::*;
+use core::ops::RangeInclusive;
 
 use embedded_hal::blocking::delay::DelayUs;
 use embedded_hal::blocking::spi::Write;
@@ -23,6 +23,7 @@ use embedded_graphics_core::{
     geometry::{Dimensions, OriginDimensions},
     pixelcolor::BinaryColor,
     prelude::*,
+    primitives::Rectangle,
 };
 
 /// Screen refresh-speed configurations for the display
@@ -194,6 +195,26 @@ where
         Ok(())
     }
 
+    /// Transmits a subset of the framebuffer via SPI.
+    /// Call partial_update if you are looking to update a partial area of the display.
+    pub fn transmit_framebuffer_range(
+        &mut self,
+        range: RangeInclusive<usize>,
+    ) -> Result<(), SpiDataError> {
+        let framebuffer = match self.framebuffer.get(range) {
+            Some(slice) => slice,
+            None => return Err(SpiDataError::SpiError),
+        };
+
+        let _ = self.cs.set_low();
+        let _ = self.dc.set_high(); // data mode
+        self.spi
+            .write(framebuffer)
+            .map_err(|_| SpiDataError::SpiError)?;
+        let _ = self.cs.set_high();
+        Ok(())
+    }
+
     /// Configure the display
     pub fn setup(
         &mut self,
@@ -311,6 +332,53 @@ where
         self.command(Instruction::POF, &[])?; // turn off
         Ok(())
     }
+
+    /// Peform a partial refresh of the display over the area defined by the `DisplayRegion`.
+    pub fn partial_update(&mut self, region: DisplayRegion) -> Result<(), SpiDataError> {
+        // if blocking
+        while self.is_busy() {}
+
+        let height = region.height;
+        let width = region.width;
+        let columns = (height / 8) as usize;
+        let y = region.y;
+        let y1 = y / 8;
+        let x = region.x;
+
+        self.command(Instruction::PON, &[])?;
+        self.command(Instruction::PTIN, &[])?;
+        self.command(
+            Instruction::PTL,
+            &[
+                y as u8,
+                (y + height - 1) as u8,
+                (x >> 8) as u8,
+                (x & 0xff) as u8,
+                ((x + width - 1) >> 8) as u8,
+                ((x + width - 1) & 0xff) as u8,
+                1,
+            ],
+        )?;
+
+        self.command(Instruction::DTM2, &[])?;
+
+        for dx in 0..width {
+            let sx = dx + x;
+            let sy = y1;
+            let idx = (sy + (sx * (HEIGHT / 8))) as usize;
+            self.transmit_framebuffer_range(idx..=(idx + columns))?;
+        }
+
+        self.command(Instruction::DSP, &[])?;
+
+        self.command(Instruction::DRF, &[])?;
+
+        while self.is_busy() {}
+
+        self.command(Instruction::POF, &[])?; // turn off
+
+        Ok(())
+    }
 }
 
 #[cfg(feature = "graphics")]
@@ -353,5 +421,44 @@ where
 {
     fn size(&self) -> Size {
         Size::new(WIDTH, HEIGHT)
+    }
+}
+
+/// Represents a rectangular display region.
+#[derive(Copy, Clone)]
+pub struct DisplayRegion {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl DisplayRegion {
+    /// Try to convert a `embedded_graphics_core::primitives::Rectangle` to a `DisplayRegion`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Rectangle's top left coordinate is not on the positive x and y axes.
+    #[cfg(feature = "graphics")]
+    pub fn try_from(value: Rectangle) -> Result<Self, &'static str> {
+        #![allow(clippy::cast_sign_loss)]
+        let point = value.top_left;
+        let size = value.size;
+        if point.x < 0 || point.y < 0 {
+            return Err("Point must have positive coordinates");
+        }
+        Ok(Self {
+            x: point.x as u32,
+            y: point.y as u32,
+            width: size.width,
+            height: size.height,
+        })
+    }
+}
+
+#[cfg(feature = "graphics")]
+impl From<Rectangle> for DisplayRegion {
+    fn from(value: Rectangle) -> Self {
+        DisplayRegion::try_from(value).unwrap()
     }
 }
