@@ -30,7 +30,7 @@ use embedded_graphics_core::{
 ///
 /// Preset configuration options for setting the refresh speed for the display.
 /// Faster refreshes will leave more of the previous image.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LUT {
     /// DEFAULT_LUT (OTP memory)
     Internal,
