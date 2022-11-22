@@ -9,7 +9,7 @@
 #[allow(warnings)]
 mod constants;
 use constants::*;
-use core::ops::RangeInclusive;
+use core::ops::Range;
 
 use embedded_hal::blocking::delay::DelayUs;
 use embedded_hal::blocking::spi::Write;
@@ -197,10 +197,7 @@ where
 
     /// Transmits a subset of the framebuffer via SPI.
     /// Call partial_update if you are looking to update a partial area of the display.
-    pub fn transmit_framebuffer_range(
-        &mut self,
-        range: RangeInclusive<usize>,
-    ) -> Result<(), SpiDataError> {
+    pub fn transmit_framebuffer_range(&mut self, range: Range<usize>) -> Result<(), SpiDataError> {
         let framebuffer = match self.framebuffer.get(range) {
             Some(slice) => slice,
             None => return Err(SpiDataError::SpiError),
@@ -334,7 +331,9 @@ where
     }
 
     /// Peform a partial refresh of the display over the area defined by the `DisplayRegion`.
-    pub fn partial_update(&mut self, region: DisplayRegion) -> Result<(), SpiDataError> {
+    pub fn partial_update(&mut self, region: UpdateRegion) -> Result<(), SpiDataError> {
+        #![allow(clippy::cast_possible_truncation)]
+
         // if blocking
         while self.is_busy() {}
 
@@ -366,7 +365,7 @@ where
             let sx = dx + x;
             let sy = y1;
             let idx = (sy + (sx * (HEIGHT / 8))) as usize;
-            self.transmit_framebuffer_range(idx..=(idx + columns))?;
+            self.transmit_framebuffer_range(idx..(idx + columns))?;
         }
 
         self.command(Instruction::DSP, &[])?;
@@ -424,41 +423,47 @@ where
     }
 }
 
-/// Represents a rectangular display region.
+/// Represents a rectangular display region to be updated.
 #[derive(Copy, Clone)]
-pub struct DisplayRegion {
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
+pub struct UpdateRegion {
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
 }
 
-impl DisplayRegion {
-    /// Try to convert a `embedded_graphics_core::primitives::Rectangle` to a `DisplayRegion`.
+impl UpdateRegion {
+    /// Create a new `UpdateRegion`. The provided `y` and `height` values must be a multiple of
+    /// eight.
     ///
     /// # Errors
+    /// Returns an error if the provided y coordinate or height is not a multiple of eight.
     ///
-    /// Returns an error if Rectangle's top left coordinate is not on the positive x and y axes.
-    #[cfg(feature = "graphics")]
-    pub fn try_from(value: Rectangle) -> Result<Self, &'static str> {
+    pub fn new(x: u32, y: u32, width: u32, height: u32) -> Result<Self, &'static str> {
+        const LOWER: u32 = 0b111;
+        if (y & LOWER) != 0 || (height & LOWER) != 0 {
+            return Err("The provide y coordinate and height must be a multiple of eight.");
+        }
+        Ok(Self {
+            x,
+            y,
+            width,
+            height,
+        })
+    }
+}
+
+#[cfg(feature = "graphics")]
+impl TryFrom<Rectangle> for UpdateRegion {
+    type Error = &'static str;
+
+    fn try_from(value: Rectangle) -> Result<Self, &'static str> {
         #![allow(clippy::cast_sign_loss)]
         let point = value.top_left;
         let size = value.size;
         if point.x < 0 || point.y < 0 {
             return Err("Point must have positive coordinates");
         }
-        Ok(Self {
-            x: point.x as u32,
-            y: point.y as u32,
-            width: size.width,
-            height: size.height,
-        })
-    }
-}
-
-#[cfg(feature = "graphics")]
-impl From<Rectangle> for DisplayRegion {
-    fn from(value: Rectangle) -> Self {
-        DisplayRegion::try_from(value).unwrap()
+        UpdateRegion::new(point.x as u32, point.y as u32, size.width, size.height)
     }
 }
