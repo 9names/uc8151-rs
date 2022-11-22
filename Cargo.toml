@@ -1,11 +1,11 @@
 [package]
 name = "uc8151"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
-authors = ["9names"]
 license = "MIT"
 description = "no_std library for the UC8151(IL0373) e-ink display with embedded-graphics support"
 repository = "https://github.com/9names/uc8151-rs"
+categories = ["no-std"]
 
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
