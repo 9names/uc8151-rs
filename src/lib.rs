@@ -169,6 +169,29 @@ where
         Ok(())
     }
 
+    /// Send command via SPI to the display, and read the return values
+    pub fn command_with_read(
+        &mut self,
+        reg: Instruction,
+        data: &mut [u8],
+    ) -> Result<(), SpiDataError> {
+        let _ = self.cs.set_low();
+        let _ = self.dc.set_low(); // command mode
+        self.spi
+            .write(&[reg as u8])
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        if !data.is_empty() {
+            let _ = self.dc.set_high(); // data mode
+            self.spi
+                .transfer(data)
+                .map_err(|_| SpiDataError::SpiError)?;
+        }
+
+        let _ = self.cs.set_high();
+        Ok(())
+    }
+
     /// Send data via SPI to the display
     pub fn data(&mut self, data: &[u8]) -> Result<(), SpiDataError> {
         let _ = self.cs.set_low();
