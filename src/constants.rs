@@ -1,44 +1,79 @@
 #[repr(u8)]
 pub enum Instruction {
+    /// panel setting
     PSR = 0x00,
+    /// power setting
     PWR = 0x01,
+    /// power off
     POF = 0x02,
+    /// power off sequence setting
     PFS = 0x03,
+    /// power on
     PON = 0x04,
+    /// power on measure
     PMES = 0x05,
+    /// booster soft start
     BTST = 0x06,
+    /// deep sleep
     DSLP = 0x07,
+    /// data start transmission 1
     DTM1 = 0x10,
+    /// data stop
     DSP = 0x11,
+    /// display refreset
     DRF = 0x12,
+    /// data start transmission 2
     DTM2 = 0x13,
     LUT_VCOM = 0x20,
     LUT_WW = 0x21,
     LUT_BW = 0x22,
     LUT_WB = 0x23,
     LUT_BB = 0x24,
+    /// pll control
     PLL = 0x30,
+    /// temperature sensor calibration
     TSC = 0x40,
+    /// temperature sensor enable
     TSE = 0x41,
-    TSR = 0x43,
+    ///  temperature sensor write
     TSW = 0x42,
+    /// temperature sensor read
+    TSR = 0x43,
+    /// vcom and data interval setting
     CDI = 0x50,
+    /// low power detection
     LPD = 0x51,
+    /// tcon setting
     TCON = 0x60,
+    /// resolution settings
     TRES = 0x61,
+    /// revision
     REV = 0x70,
+    /// get status
     FLG = 0x71,
+    /// auto measure vcom
     AMV = 0x80,
+    /// vcom value
     VV = 0x81,
+    /// vcom_dc setting
     VDCS = 0x82,
+    /// partial window
     PTL = 0x90,
+    /// partial in
     PTIN = 0x91,
+    /// partial out
     PTOU = 0x92,
+    /// program mode
     PGM = 0xa0,
+    /// active program
     APG = 0xa1,
+    /// read otp data
     ROTP = 0xa2,
+    /// cascade setting
     CCSET = 0xe0,
+    /// power saving
     PWS = 0xe3,
+    /// force temperature
     TSSET = 0xe5,
 }
 
