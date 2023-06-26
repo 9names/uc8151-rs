@@ -12,7 +12,7 @@ use constants::*;
 use core::ops::Range;
 
 use embedded_hal::blocking::delay::DelayUs;
-use embedded_hal::blocking::spi::Write;
+use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal::digital::v2::OutputPin;
 
@@ -71,7 +71,7 @@ const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
 impl<SPI, CS, DC, BUSY, RESET> Uc8151<SPI, CS, DC, BUSY, RESET>
 where
-    SPI: Write<u8>,
+    SPI: Write<u8> + Transfer<u8>,
     CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
@@ -438,7 +438,7 @@ where
 #[cfg(feature = "graphics")]
 impl<SPI, CS, DC, BUSY, RESET> DrawTarget for Uc8151<SPI, CS, DC, BUSY, RESET>
 where
-    SPI: Write<u8>,
+    SPI: Write<u8> + Transfer<u8>,
     CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
