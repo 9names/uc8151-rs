@@ -47,6 +47,7 @@ pub enum LUT {
 /// Uc8151 driver
 pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
     framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
+    oldbuffer: [u8; FRAME_BUFFER_SIZE as usize],
     pub spi: SPI,
     pub cs: CS,
     pub dc: DC,
@@ -80,6 +81,7 @@ where
     pub fn new(spi: SPI, cs: CS, dc: DC, busy: BUSY, reset: RESET) -> Self {
         Self {
             framebuffer: [0; FRAME_BUFFER_SIZE as usize],
+            oldbuffer: [0; FRAME_BUFFER_SIZE as usize],
             spi,
             cs,
             dc,
@@ -192,6 +194,39 @@ where
             .map_err(|_| SpiDataError::SpiError)?;
 
         let _ = self.cs.set_high();
+        for (a, b) in self.oldbuffer.iter_mut().zip(self.framebuffer.iter()) {
+            *a = *b;
+        }
+        Ok(())
+    }
+
+    /// Send framebuffer to display via SPI, using fast update method
+    pub fn transmit_framebuffer_fast(&mut self) -> Result<(), SpiDataError> {
+        let _ = self.cs.set_low();
+        let _ = self.dc.set_low(); // command mode
+        self.spi
+            .write(&[Instruction::DTM1 as u8])
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.dc.set_high(); // data mode
+        self.spi
+            .write(&self.oldbuffer)
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.dc.set_low(); // command mode
+        self.spi
+            .write(&[Instruction::DTM2 as u8])
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.dc.set_high(); // data mode
+        self.spi
+            .write(&self.framebuffer)
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.cs.set_high();
+        for (a, b) in self.oldbuffer.iter_mut().zip(self.framebuffer.iter()) {
+            *a = *b;
+        }
         Ok(())
     }
 
@@ -326,6 +361,26 @@ where
                                               // if blocking
         while self.is_busy() {}
 
+        self.command(Instruction::POF, &[])?; // turn off
+        Ok(())
+    }
+
+    /// Refresh the display with what is in the framebuffer
+    pub fn update_fast(&mut self) -> Result<(), SpiDataError> {
+        // if blocking
+        while self.is_busy() {}
+
+        self.command(Instruction::PON, &[])?; // turn on
+        self.command(Instruction::PTIN, &[])?; // enable partial mode
+
+        self.transmit_framebuffer_fast()?;
+
+        self.command(Instruction::DSP, &[])?; // data stop
+
+        self.command(Instruction::DRF, &[])?; // start display refresh
+                                              // if blocking
+        while self.is_busy() {}
+        self.command(Instruction::PTOU, &[])?; // disable partial mode
         self.command(Instruction::POF, &[])?; // turn off
         Ok(())
     }
