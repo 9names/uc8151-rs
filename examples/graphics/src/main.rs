@@ -39,15 +39,6 @@ use pimoroni_badger2040::hal::Timer;
 use embedded_hal::timer::CountDown;
 use fugit::ExtU32;
 use fugit::RateExtU32;
-use hal::gpio;
-use hal::gpio::bank0;
-pub struct Buttons {
-    pub a: gpio::Pin<bank0::Gpio12, gpio::Input<gpio::Floating>>,
-    pub b: gpio::Pin<bank0::Gpio13, gpio::Input<gpio::Floating>>,
-    pub c: gpio::Pin<bank0::Gpio14, gpio::Input<gpio::Floating>>,
-    pub down: gpio::Pin<bank0::Gpio11, gpio::Input<gpio::Floating>>,
-    pub up: gpio::Pin<bank0::Gpio15, gpio::Input<gpio::Floating>>,
-}
 
 static FERRIS_IMG: &[u8; 2622] = include_bytes!("../ferris_1bpp.bmp");
 
@@ -87,7 +78,7 @@ fn main() -> ! {
     );
 
     // Configure the timer peripheral to be a CountDown timer for our blinky delay
-    let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+    let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
     // Get all the basic peripherals, and init clocks/timers
@@ -96,9 +87,9 @@ fn main() -> ! {
     power.set_high().unwrap();
 
     // Set up the pins for the e-ink display
-    let _spi_sclk = pins.sclk.into_mode::<hal::gpio::FunctionSpi>();
-    let _spi_mosi = pins.mosi.into_mode::<hal::gpio::FunctionSpi>();
-    let spi = hal::Spi::<_, _, 8>::new(pac.SPI0);
+    let spi_sclk = pins.sclk.into_function::<hal::gpio::FunctionSpi>();
+    let spi_mosi = pins.mosi.into_function::<hal::gpio::FunctionSpi>();
+    let spi = hal::Spi::<_, _, _>::new(pac.SPI0,(spi_mosi, spi_sclk));
     let mut dc = pins.inky_dc.into_push_pull_output();
     let mut cs = pins.inky_cs_gpio.into_push_pull_output();
     let busy = pins.inky_busy.into_pull_up_input();
@@ -108,7 +99,7 @@ fn main() -> ! {
         &mut pac.RESETS,
         clocks.peripheral_clock.freq(),
         RateExtU32::MHz(1),
-        &embedded_hal::spi::MODE_0,
+        embedded_hal::spi::MODE_0,
     );
 
     dc.set_high().unwrap();

@@ -12,7 +12,7 @@ cortex-m-rt = "0.7.0"
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 panic-halt = "0.2.0"
 
-pimoroni_badger2040 = "0.4"
+pimoroni_badger2040 = "0.5"
 uc8151 = "0.2.0"
 nb = "1.0.0"
 embedded-graphics = "0.8.0"
