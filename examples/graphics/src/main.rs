@@ -32,7 +32,7 @@ static FERRIS_IMG: &[u8; 2622] = include_bytes!("../ferris_1bpp.bmp");
 #[entry]
 fn main() -> ! {
     // Set up all the basic peripherals, and init clocks/timers
-    let core = pac::CorePeripherals::take().unwrap();
+    let _core = pac::CorePeripherals::take().unwrap();
     let mut pac = pac::Peripherals::take().unwrap();
 
     let mut watchdog = hal::Watchdog::new(pac.WATCHDOG);
@@ -49,7 +49,6 @@ fn main() -> ! {
     .ok()
     .unwrap();
     let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -87,7 +86,7 @@ fn main() -> ! {
     display.reset(&mut timer);
 
     // Initialise display. Using the default LUT speed setting
-    let _ = display.setup(&mut delay, uc8151::LUT::Internal);
+    let _ = display.setup(&mut timer, uc8151::LUT::Internal);
 
     // Note we're setting the Text color to `Off`. The driver is set up to treat Off as Black so that BMPs work as expected.
     let character_style = MonoTextStyle::new(&FONT_9X18_BOLD, BinaryColor::Off);
