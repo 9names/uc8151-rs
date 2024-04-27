@@ -8,7 +8,7 @@ repository = "https://github.com/9names/uc8151-rs"
 categories = ["no-std"]
 
 [dependencies]
-embedded-hal = { version = "0.2.7", features = ["unproven"] }
+embedded-hal = { version = "1" }
 embedded-graphics-core = { version = "0.4", optional = true }
 
 [features]
