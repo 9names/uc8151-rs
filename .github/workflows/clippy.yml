@@ -1,0 +1,18 @@
+on: [push, pull_request]
+name: Clippy check
+jobs:
+  clippy_check:
+    name: Run Clippy
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: uc8151-rs
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: thumbv6m-none-eabi
+          components: clippy
+      - run: cargo clippy
