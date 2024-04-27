@@ -4,11 +4,14 @@
 //! The current implementation only supports the particular variant used on the Pimoroni Badger2040, which uses a black and white (1bit per pixel) 128x296 pixel screen.
 //! Rust [embedded-graphics](https://github.com/embedded-graphics/embedded-graphics) support is enabled with the `graphics` feature, which is enabled by default.
 
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 #[allow(warnings)]
 mod constants;
+mod lut;
 use constants::*;
+use embedded_hal::blocking;
+use core::ops::Index;
 use core::ops::Range;
 
 use embedded_hal::blocking::delay::DelayUs;
@@ -195,6 +198,24 @@ where
         Ok(())
     }
 
+    /// Send framebuffer to last displayed buffer via SPI.
+    /// This is a low-level function, call update() if you just want to update the display
+    pub fn transmit_framebuffer_old(&mut self, fb: &[u8]) -> Result<(), SpiDataError> {
+        let _ = self.cs.set_low();
+        let _ = self.dc.set_low(); // command mode
+        self.spi
+            .write(&[Instruction::DTM1 as u8])
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.dc.set_high(); // data mode
+        self.spi
+            .write(&fb)
+            .map_err(|_| SpiDataError::SpiError)?;
+
+        let _ = self.cs.set_high();
+        Ok(())
+    }
+
     /// Transmits a subset of the framebuffer via SPI.
     /// Call partial_update if you are looking to update a partial area of the display.
     pub fn transmit_framebuffer_range(&mut self, range: Range<usize>) -> Result<(), SpiDataError> {
@@ -240,14 +261,15 @@ where
             self.update_speed()?;
         }
 
+        // Set to +-10V instead of +-11V
         self.command(
             Instruction::PWR,
             &[
                 pwr_flags_1::VDS_INTERNAL | pwr_flags_1::VDG_INTERNAL,
-                pwr_flags_2::VCOM_VD | pwr_flags_2::VGHL_16V,
-                0b101011,
-                0b101011,
-                0b101011,
+                pwr_flags_2::VCOM_VD | pwr_flags_2::VGHL_16V, // VCOM_VD sets VCOM voltage to VD[HL]+VCOM_DC
+                0b100110,                                     // +10v VDH
+                0b100110,                                     // -10v VDL
+                0b000011, // VDHR default (For red pixels, not used here)
             ],
         )?;
         self.command(Instruction::PON, &[])?;
@@ -377,6 +399,153 @@ where
         self.command(Instruction::POF, &[])?; // turn off
 
         Ok(())
+    }
+
+    /// Update the display in greyscale "faked mode" using the image
+    /// into the framebuffer "buffer". The buffer should be width*height
+    /// pixels (depending on the display size) bytes. Each byte has
+    /// a value in the range 0-255, from black to white.
+    pub fn update_greyscale(&mut self, buffer: &[u8], greyscale: u8) -> Result<(), SpiDataError> {
+        let greyscales = [32u8,16u8,8u8,4u8]; // Must be power of 2.
+
+        // Frames needed to go from white to black, using
+        // a too large number may damage the display, but
+        // using a bit larger number may improve contrast.
+        let frames_to_black = 32;
+        if !greyscales.contains(&greyscale) {
+            panic!("Unsupported greyscale");
+        }
+
+        // Amount of right shifting to convert 0-255 grey value to 0-(greyscale-1) value.
+        let shift = 3+greyscales.iter().position(|&x| x == greyscale).unwrap();
+
+        // Prepare the display: we want it to be white, and we want the
+        // registers LUTs to be selected (all speeds but speed 0).
+        // let orig_speed = self.speed;
+        // let orig_no_flickering = self.no_flickering;
+
+        //self.set_speed(2,no_flickering=True);
+        self.framebuffer.fill(0);
+        //self.update(blocking=True); // All screen white
+        self.update()?;
+
+        // Nothing to do for white pixels or already black pixels - set an empty LUT.
+        let mut lut = [0u8;42];
+        let mut vcom = [0u8;44];
+
+        // Now for each level of grey in the image, create a bitmap composed
+        // only of pixels of that level of grey, and create an ad-hoc LUT
+        // that polarizes pixels towards black for an amount of time (frames)
+        // proportional to the grey level.
+        let mut fb2 = [0u8; FRAME_BUFFER_SIZE as usize];
+        for g in (0..greyscale).into_iter().step_by(3) {
+            // Set the pixels for the current greyscale level.
+            let anypixel = Self::set_pixels_for_greyscale(buffer,&mut self.framebuffer,&mut fb2,WIDTH,HEIGHT,shift,g+1);
+            if anypixel {
+                // Transfer the "old" image, so that for difference
+                // with the new we transfer via .update() we create
+                // the four set of conditions (WW, BB, WB, BW) based
+                // on the difference between the bits in the two
+                // images.
+                //self.send_image(fb2,old=True);
+                self.transmit_framebuffer_old(&fb2)?;
+
+                // We set the framebuffer with just the pixels of the level
+                // of grey we are handling in this cycle, so now we apply
+                // the voltage for a time proportional to this level (see
+                // the setting of LUT[1], that is the number of frames).
+                lut[0] = 0x55; // Go black
+                lut[5] = 1; // Repeat 1 for all
+                lut[1] = frames_to_black/(greyscale-1)*(g+1);
+                self.command(Instruction::LUT_WW, &lut)?;
+                lut[1] = frames_to_black/(greyscale-1)*(g+2);
+                self.command(Instruction::LUT_BB, &lut)?;
+                lut[1] = frames_to_black/(greyscale-1)*(g+3);
+                self.command(Instruction::LUT_WB, &lut)?;
+                lut[1] = 0; // These pixels will be unaffected, none of them
+                           // is of the three colors handled in this cycle.
+                lut[5] = 0;
+                self.command(Instruction::LUT_BW, &lut)?;
+
+                // Minimal VCOM LUT to avoid any unneeded wait.
+                vcom[0] = 0; // Already zero, just to make it obvious.
+                vcom[1] = frames_to_black/greyscale*(g+3);
+                vcom[5] = 1;
+                self.command(Instruction::LUT_VCOM, &vcom)?;
+
+                // Finally update.
+                //self.update(blocking=True);
+                self.update()?;
+            }
+        }
+        // Restore a normal LUT based on configured speed.
+        //self.set_speed(orig_speed,no_flickering=orig_no_flickering);
+        //self.wait_and_switch_off();
+        Ok(())
+    }
+
+    /// Helper function to render greyscale images.
+    ///
+    /// This function has to generate two one-bit images, using the two
+    /// framebuffers fb1 and fb2. For three grey levels, we set the
+    /// before/after bits in order to trigger the WW/BB/WB conditions,
+    /// so that we assign to each of this LUTs the waveform needed to
+    /// generate a different level of grey. We use BW for pixels that
+    /// should not be toched (either set in past iterations or yet to be
+    /// set with a different level of grey than level,level+1,level+2).
+    /// 
+    /// Using this trick, we can set the pixels of three different levels
+    /// of greys in the same update. The image to render should be in
+    /// 'grey', where each byte maps to a pixel: higher values means
+    /// a more lighter level of grey.
+    ///
+    /// The three level of greys that this function will match are
+    /// given by 'level': from level to level+2 inclusive.
+    fn set_pixels_for_greyscale(grey:&[u8], fb1:&mut [u8], fb2:&mut [u8], width:u32, height:u32, shift:usize, level:u8) -> bool {
+        let count = width*height;
+        let mut anypixel = false;
+        for i in 0..(count/8) as usize {
+            fb1[i] = 0;
+            fb2[i] = 0;
+        }
+
+        for i in 0..count as usize {
+            // Pixel that reached level "1" are the only ones at the
+            // current grey level we want to set.
+            let byte = i >> 3;
+            let bit = 1 << (7-(i&7));
+
+            // Given that a greater value of the pixel means lighter
+            // pixels, but for the display more frames to turn this pixel
+            // towards black is the reverse, we invert the pixel value.
+            // We also need to scale it from 0-255 to 0-(greys-1).
+            let converted = (255-grey[i]) >> shift; // Invert and rescale.
+            // WW condition
+            if converted == level {
+                anypixel = true;
+                continue;
+            } 
+            // BB condition
+            else if converted == level+1 {    
+                anypixel = true;
+                fb1[byte] |= bit;
+                fb2[byte] |= bit;
+            }
+            // WB condition
+            else if converted == level+2 {    
+                anypixel = true;
+                fb1[byte] |= bit;
+            }
+            // BW condition, pixels not touched.
+            else {                   
+                fb2[byte] |= bit;
+            }
+        }
+        anypixel
+    }
+
+    fn update_py(&mut self, blocking: bool) {
+
     }
 }
 

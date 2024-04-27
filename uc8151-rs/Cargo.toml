@@ -1,6 +1,6 @@
 [package]
 name = "uc8151"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 description = "no_std library for the UC8151(IL0373) e-ink display with embedded-graphics support"

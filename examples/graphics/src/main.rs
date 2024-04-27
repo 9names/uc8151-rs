@@ -32,7 +32,6 @@ static FERRIS_IMG: &[u8; 2622] = include_bytes!("../ferris_1bpp.bmp");
 #[entry]
 fn main() -> ! {
     // Set up all the basic peripherals, and init clocks/timers
-    let _core = pac::CorePeripherals::take().unwrap();
     let mut pac = pac::Peripherals::take().unwrap();
 
     let mut watchdog = hal::Watchdog::new(pac.WATCHDOG);
