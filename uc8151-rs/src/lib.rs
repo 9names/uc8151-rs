@@ -7,9 +7,17 @@
 
 use embedded_graphics_core::primitives::Rectangle;
 
+// #![cfg_attr(not(test), no_std)]
+
+#[allow(warnings)]
+mod constants;
+mod lut;
+use constants::*;
+use core::ops::Index;
+use core::ops::Range;
+
 pub mod asynch;
 pub mod blocking;
-pub mod constants;
 
 // RES_128X296 1bit per pixel
 /// Width of the screen in pixels
