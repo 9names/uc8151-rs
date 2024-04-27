@@ -1,3 +1,5 @@
+
+#[allow(clippy::non_camel_case_types)]
 #[repr(u8)]
 pub enum Instruction {
     PSR = 0x00,
