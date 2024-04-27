@@ -11,10 +11,10 @@ mod constants;
 use constants::*;
 use core::ops::Range;
 
-use embedded_hal::blocking::delay::DelayUs;
-use embedded_hal::blocking::spi::Write;
-use embedded_hal::digital::v2::InputPin;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::delay::DelayNs;
+use embedded_hal::digital::InputPin;
+use embedded_hal::digital::OutputPin;
+use embedded_hal::spi::SpiDevice;
 
 #[cfg(feature = "graphics")]
 use embedded_graphics_core::{
@@ -45,13 +45,14 @@ pub enum LUT {
 }
 
 /// Uc8151 driver
-pub struct Uc8151<SPI, CS, DC, BUSY, RESET> {
+pub struct Uc8151<SPI, CS, DC, BUSY, RESET, DELAY> {
     framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
     pub spi: SPI,
     pub cs: CS,
     pub dc: DC,
     pub busy: BUSY,
     pub reset: RESET,
+    pub delay: DELAY,
     pub lut: LUT,
 }
 
@@ -68,16 +69,17 @@ pub const WIDTH: u32 = 296;
 pub const HEIGHT: u32 = 128;
 const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
-impl<SPI, CS, DC, BUSY, RESET> Uc8151<SPI, CS, DC, BUSY, RESET>
+impl<SPI, CS, DC, BUSY, RESET, DELAY> Uc8151<SPI, CS, DC, BUSY, RESET, DELAY>
 where
-    SPI: Write<u8>,
+    SPI: SpiDevice,
     CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
     RESET: OutputPin,
+    DELAY: DelayNs,
 {
     /// Create new UC8151 instance from the given SPI and GPIO pins
-    pub fn new(spi: SPI, cs: CS, dc: DC, busy: BUSY, reset: RESET) -> Self {
+    pub fn new(spi: SPI, cs: CS, dc: DC, busy: BUSY, reset: RESET, delay: DELAY) -> Self {
         Self {
             framebuffer: [0; FRAME_BUFFER_SIZE as usize],
             spi,
@@ -85,6 +87,7 @@ where
             dc,
             busy,
             reset,
+            delay,
             lut: LUT::Internal,
         }
     }
@@ -102,7 +105,7 @@ where
     }
 
     /// Returns true if the display controller is busy
-    pub fn is_busy(&self) -> bool {
+    pub fn is_busy(&mut self) -> bool {
         self.busy.is_low().unwrap_or(true)
     }
 
@@ -140,11 +143,11 @@ where
     }
 
     /// Reset the display
-    pub fn reset(&mut self, delay_source: &mut impl DelayUs<u32>) {
+    pub fn reset(&mut self) {
         self.disable();
-        delay_source.delay_us(10_000);
+        self.delay.delay_us(10_000);
         self.enable();
-        delay_source.delay_us(10_000);
+        self.delay.delay_us(10_000);
 
         // Wait until the screen is finished initialising before returning
         while self.is_busy() {}
@@ -213,12 +216,8 @@ where
     }
 
     /// Configure the display
-    pub fn setup(
-        &mut self,
-        delay_source: &mut impl DelayUs<u32>,
-        speed: LUT,
-    ) -> Result<(), SpiDataError> {
-        self.reset(delay_source);
+    pub fn setup(&mut self, speed: LUT) -> Result<(), SpiDataError> {
+        self.reset();
         self.lut = speed;
 
         let lut_type = if speed == LUT::Internal {
@@ -278,6 +277,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::unusual_byte_groupings)]
     /// Invert the colors of the screen - normal = black on white, inverted = white on black
     pub fn invert_colors(&mut self, inverted: bool) -> Result<(), SpiDataError> {
         self.command(
@@ -381,13 +381,14 @@ where
 }
 
 #[cfg(feature = "graphics")]
-impl<SPI, CS, DC, BUSY, RESET> DrawTarget for Uc8151<SPI, CS, DC, BUSY, RESET>
+impl<SPI, CS, DC, BUSY, RESET, DELAY> DrawTarget for Uc8151<SPI, CS, DC, BUSY, RESET, DELAY>
 where
-    SPI: Write<u8>,
+    SPI: SpiDevice,
     CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
     RESET: OutputPin,
+    DELAY: DelayNs,
 {
     type Color = BinaryColor;
     type Error = core::convert::Infallible;
@@ -410,13 +411,14 @@ where
 }
 
 #[cfg(feature = "graphics")]
-impl<SPI, CS, DC, BUSY, RESET> OriginDimensions for Uc8151<SPI, CS, DC, BUSY, RESET>
+impl<SPI, CS, DC, BUSY, RESET, DELAY> OriginDimensions for Uc8151<SPI, CS, DC, BUSY, RESET, DELAY>
 where
-    SPI: Write<u8>,
+    SPI: SpiDevice,
     CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
     RESET: OutputPin,
+    DELAY: DelayNs,
 {
     fn size(&self) -> Size {
         Size::new(WIDTH, HEIGHT)
