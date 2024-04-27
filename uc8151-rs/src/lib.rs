@@ -12,9 +12,9 @@ use constants::*;
 use core::ops::Range;
 
 use embedded_hal::delay::DelayNs;
-use embedded_hal::spi::SpiDevice;
 use embedded_hal::digital::InputPin;
 use embedded_hal::digital::OutputPin;
+use embedded_hal::spi::SpiDevice;
 
 #[cfg(feature = "graphics")]
 use embedded_graphics_core::{
@@ -278,6 +278,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::unusual_byte_groupings)]
     /// Invert the colors of the screen - normal = black on white, inverted = white on black
     pub fn invert_colors(&mut self, inverted: bool) -> Result<(), SpiDataError> {
         self.command(
