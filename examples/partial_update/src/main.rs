@@ -6,8 +6,8 @@
 use bsp::entry;
 use embedded_graphics::primitives::PrimitiveStyleBuilder;
 use embedded_graphics::text::Text;
-use embedded_hal::blocking::delay::DelayMs;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::delay::DelayNs;
+use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 
 use bsp::hal;
