@@ -8,6 +8,7 @@ use embedded_graphics::primitives::PrimitiveStyleBuilder;
 use embedded_graphics::text::Text;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::OutputPin;
+use embedded_hal_bus::spi::ExclusiveDevice;
 use panic_halt as _;
 
 use bsp::hal;
@@ -74,10 +75,12 @@ fn main() -> ! {
     dc.set_high().unwrap();
     cs.set_high().unwrap();
 
-    let mut display = uc8151::Uc8151::new(spi, cs, dc, busy, reset);
+    let spi_dev = ExclusiveDevice::new(spi, cs, timer.clone()).unwrap();
+
+    let mut display = uc8151::Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
 
     // Initialise display. Using the default LUT speed setting
-    let _ = display.setup(&mut timer, uc8151::LUT::Internal);
+    let _ = display.setup(uc8151::LUT::Internal);
 
     let mut current = 0i32;
     let mut channel = 0;
