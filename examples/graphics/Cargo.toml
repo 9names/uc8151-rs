@@ -10,12 +10,14 @@ publish = false
 cortex-m = "0.7.3"
 cortex-m-rt = "0.7.0"
 embedded-hal = { version = "1" }
+embedded-hal-bus = "0.2"
 panic-halt = "0.2.0"
-
 pimoroni_badger2040 = "0.6"
-uc8151 = "0.2.0"
+# uc8151 = "0.3.0"
+uc8151 = { version ="0.3.0", path ="../../uc8151-rs" }
 nb = "1.0.0"
 embedded-graphics = "0.8.0"
 embedded-text = "0.7.0"
 tinybmp = "0.5.0"
 fugit = "0.3.6"
+portable-atomic = { version = "1.6.0", features = ["critical-section"] }
