@@ -45,10 +45,9 @@ pub enum LUT {
 }
 
 /// Uc8151 driver
-pub struct Uc8151<SPI, CS, DC, BUSY, RESET, DELAY> {
+pub struct Uc8151<SPI, DC, BUSY, RESET, DELAY> {
     framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
     pub spi: SPI,
-    pub cs: CS,
     pub dc: DC,
     pub busy: BUSY,
     pub reset: RESET,
@@ -69,21 +68,19 @@ pub const WIDTH: u32 = 296;
 pub const HEIGHT: u32 = 128;
 const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
-impl<SPI, CS, DC, BUSY, RESET, DELAY> Uc8151<SPI, CS, DC, BUSY, RESET, DELAY>
+impl<SPI, DC, BUSY, RESET, DELAY> Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
-    CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
     RESET: OutputPin,
     DELAY: DelayNs,
 {
     /// Create new UC8151 instance from the given SPI and GPIO pins
-    pub fn new(spi: SPI, cs: CS, dc: DC, busy: BUSY, reset: RESET, delay: DELAY) -> Self {
+    pub fn new(spi: SPI, dc: DC, busy: BUSY, reset: RESET, delay: DELAY) -> Self {
         Self {
             framebuffer: [0; FRAME_BUFFER_SIZE as usize],
             spi,
-            cs,
             dc,
             busy,
             reset,
@@ -155,7 +152,6 @@ where
 
     /// Send command via SPI to the display
     pub fn command(&mut self, reg: Instruction, data: &[u8]) -> Result<(), SpiDataError> {
-        let _ = self.cs.set_low();
         let _ = self.dc.set_low(); // command mode
         self.spi
             .write(&[reg as u8])
@@ -165,25 +161,19 @@ where
             let _ = self.dc.set_high(); // data mode
             self.spi.write(data).map_err(|_| SpiDataError::SpiError)?;
         }
-
-        let _ = self.cs.set_high();
         Ok(())
     }
 
     /// Send data via SPI to the display
     pub fn data(&mut self, data: &[u8]) -> Result<(), SpiDataError> {
-        let _ = self.cs.set_low();
         let _ = self.dc.set_high(); // data mode
         self.spi.write(data).map_err(|_| SpiDataError::SpiError)?;
-
-        let _ = self.cs.set_high();
         Ok(())
     }
 
     /// Send framebuffer to display via SPI.
     /// This is a low-level function, call update() if you just want to update the display
     pub fn transmit_framebuffer(&mut self) -> Result<(), SpiDataError> {
-        let _ = self.cs.set_low();
         let _ = self.dc.set_low(); // command mode
         self.spi
             .write(&[Instruction::DTM2 as u8])
@@ -193,8 +183,6 @@ where
         self.spi
             .write(&self.framebuffer)
             .map_err(|_| SpiDataError::SpiError)?;
-
-        let _ = self.cs.set_high();
         Ok(())
     }
 
@@ -206,12 +194,10 @@ where
             None => return Err(SpiDataError::SpiError),
         };
 
-        let _ = self.cs.set_low();
         let _ = self.dc.set_high(); // data mode
         self.spi
             .write(framebuffer)
             .map_err(|_| SpiDataError::SpiError)?;
-        let _ = self.cs.set_high();
         Ok(())
     }
 
@@ -381,10 +367,9 @@ where
 }
 
 #[cfg(feature = "graphics")]
-impl<SPI, CS, DC, BUSY, RESET, DELAY> DrawTarget for Uc8151<SPI, CS, DC, BUSY, RESET, DELAY>
+impl<SPI, DC, BUSY, RESET, DELAY> DrawTarget for Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
-    CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
     RESET: OutputPin,
@@ -411,10 +396,9 @@ where
 }
 
 #[cfg(feature = "graphics")]
-impl<SPI, CS, DC, BUSY, RESET, DELAY> OriginDimensions for Uc8151<SPI, CS, DC, BUSY, RESET, DELAY>
+impl<SPI, DC, BUSY, RESET, DELAY> OriginDimensions for Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
-    CS: OutputPin,
     DC: OutputPin,
     BUSY: InputPin,
     RESET: OutputPin,
