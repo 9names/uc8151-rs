@@ -50,7 +50,7 @@ pub struct Uc8151<SPI, DC, BUSY, RESET, DELAY> {
     pub spi: SPI,
     pub dc: DC,
     pub busy: BUSY,
-    pub reset: RESET,
+    pub reset_pin: RESET,
     pub delay: DELAY,
     pub lut: LUT,
 }
@@ -77,13 +77,13 @@ where
     DELAY: DelayNs,
 {
     /// Create new UC8151 instance from the given SPI and GPIO pins
-    pub fn new(spi: SPI, dc: DC, busy: BUSY, reset: RESET, delay: DELAY) -> Self {
+    pub fn new(spi: SPI, dc: DC, busy: BUSY, reset_pin: RESET, delay: DELAY) -> Self {
         Self {
             framebuffer: [0; FRAME_BUFFER_SIZE as usize],
             spi,
             dc,
             busy,
-            reset,
+            reset_pin,
             delay,
             lut: LUT::Internal,
         }
@@ -92,13 +92,13 @@ where
     /// Enable the display controller
     pub fn enable(&mut self) {
         // Ignoring return value for set, RP2040 GPIO is infallible
-        let _ = self.reset.set_high();
+        let _ = self.reset_pin.set_high();
     }
 
     /// Disable the display controller
     pub fn disable(&mut self) {
         // Ignoring return value for set, RP2040 GPIO is infallible
-        let _ = self.reset.set_low();
+        let _ = self.reset_pin.set_low();
     }
 
     /// Returns true if the display controller is busy
