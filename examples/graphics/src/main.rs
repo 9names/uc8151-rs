@@ -27,6 +27,7 @@ use embedded_text::{
     TextBox,
 };
 use tinybmp::Bmp;
+use uc8151::blocking::Uc8151;
 use uc8151::WIDTH;
 
 static FERRIS_IMG: &[u8; 2622] = include_bytes!("../ferris_1bpp.bmp");
@@ -84,7 +85,7 @@ fn main() -> ! {
 
     let spi_dev = ExclusiveDevice::new(spi, cs, timer.clone()).unwrap();
 
-    let mut display = uc8151::Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
+    let mut display = Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
 
     // Reset display
     display.reset();
