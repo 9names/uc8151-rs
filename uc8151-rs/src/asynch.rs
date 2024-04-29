@@ -1,5 +1,6 @@
 use crate::constants::*;
 use crate::SpiDataError;
+use crate::UpdateRegion;
 use crate::FRAME_BUFFER_SIZE;
 use crate::HEIGHT;
 use crate::LUT;
@@ -19,7 +20,6 @@ use embedded_graphics_core::{
     geometry::{Dimensions, OriginDimensions},
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::Rectangle,
 };
 
 /// Uc8151 driver
@@ -394,50 +394,5 @@ where
 {
     fn size(&self) -> Size {
         Size::new(WIDTH, HEIGHT)
-    }
-}
-
-/// Represents a rectangular display region to be updated.
-#[derive(Copy, Clone)]
-pub struct UpdateRegion {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-}
-
-impl UpdateRegion {
-    /// Create a new `UpdateRegion`. The provided `y` and `height` values must be a multiple of
-    /// eight.
-    ///
-    /// # Errors
-    /// Returns an error if the provided y coordinate or height is not a multiple of eight.
-    ///
-    pub fn new(x: u32, y: u32, width: u32, height: u32) -> Result<Self, &'static str> {
-        const LOWER: u32 = 0b111;
-        if (y & LOWER) != 0 || (height & LOWER) != 0 {
-            return Err("The provide y coordinate and height must be a multiple of eight.");
-        }
-        Ok(Self {
-            x,
-            y,
-            width,
-            height,
-        })
-    }
-}
-
-#[cfg(feature = "graphics")]
-impl TryFrom<Rectangle> for UpdateRegion {
-    type Error = &'static str;
-
-    fn try_from(value: Rectangle) -> Result<Self, &'static str> {
-        #![allow(clippy::cast_sign_loss)]
-        let point = value.top_left;
-        let size = value.size;
-        if point.x < 0 || point.y < 0 {
-            return Err("Point must have positive coordinates");
-        }
-        UpdateRegion::new(point.x as u32, point.y as u32, size.width, size.height)
     }
 }
