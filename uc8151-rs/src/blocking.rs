@@ -1,4 +1,9 @@
 use crate::constants::*;
+use crate::SpiDataError;
+use crate::FRAME_BUFFER_SIZE;
+use crate::HEIGHT;
+use crate::LUT;
+use crate::WIDTH;
 use core::ops::Range;
 
 use embedded_hal::delay::DelayNs;
@@ -16,24 +21,6 @@ use embedded_graphics_core::{
     primitives::Rectangle,
 };
 
-/// Screen refresh-speed configurations for the display
-///
-/// Preset configuration options for setting the refresh speed for the display.
-/// Faster refreshes will leave more of the previous image.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum LUT {
-    /// DEFAULT_LUT (OTP memory)
-    Internal,
-    /// DEFAULT_LUT
-    Normal,
-    /// MEDIUM_LUT
-    Medium,
-    /// FAST_LUT
-    Fast,
-    /// ULTRA_LUT
-    Ultrafast,
-}
-
 /// Uc8151 driver
 pub struct Uc8151<SPI, DC, BUSY, RESET, DELAY> {
     framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
@@ -44,19 +31,6 @@ pub struct Uc8151<SPI, DC, BUSY, RESET, DELAY> {
     pub delay: DELAY,
     pub lut: LUT,
 }
-
-/// An error that with the SPI data bus
-#[derive(Debug)]
-pub enum SpiDataError {
-    SpiError,
-}
-
-// RES_128X296 1bit per pixel
-/// Width of the screen in pixels
-pub const WIDTH: u32 = 296;
-/// Height of the screen in pixels
-pub const HEIGHT: u32 = 128;
-const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
 impl<SPI, DC, BUSY, RESET, DELAY> Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where

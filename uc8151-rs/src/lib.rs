@@ -14,3 +14,29 @@ pub mod constants;
 pub const WIDTH: u32 = 296;
 /// Height of the screen in pixels
 pub const HEIGHT: u32 = 128;
+
+const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
+
+/// Screen refresh-speed configurations for the display
+///
+/// Preset configuration options for setting the refresh speed for the display.
+/// Faster refreshes will leave more of the previous image.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum LUT {
+    /// DEFAULT_LUT (OTP memory)
+    Internal,
+    /// DEFAULT_LUT
+    Normal,
+    /// MEDIUM_LUT
+    Medium,
+    /// FAST_LUT
+    Fast,
+    /// ULTRA_LUT
+    Ultrafast,
+}
+
+/// An error that with the SPI data bus
+#[derive(Debug)]
+pub enum SpiDataError {
+    SpiError,
+}
