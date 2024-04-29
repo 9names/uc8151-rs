@@ -12,6 +12,8 @@ use hal::pac;
 use hal::{clocks::Clock, Timer};
 use pimoroni_badger2040 as bsp;
 
+use embedded_hal_bus::spi::ExclusiveDevice;
+
 use embedded_graphics::{
     image::Image,
     mono_font::{ascii::*, MonoTextStyle},
@@ -48,7 +50,7 @@ fn main() -> ! {
     )
     .ok()
     .unwrap();
-    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
+    let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -80,13 +82,15 @@ fn main() -> ! {
     dc.set_high().unwrap();
     cs.set_high().unwrap();
 
-    let mut display = uc8151::Uc8151::new(spi, cs, dc, busy, reset);
+    let spi_dev = ExclusiveDevice::new(spi, cs, timer.clone()).unwrap();
+
+    let mut display = uc8151::Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
 
     // Reset display
-    display.reset(&mut timer);
+    display.reset();
 
     // Initialise display. Using the default LUT speed setting
-    let _ = display.setup(&mut timer, uc8151::LUT::Internal);
+    let _ = display.setup(uc8151::LUT::Internal);
 
     // Note we're setting the Text color to `Off`. The driver is set up to treat Off as Black so that BMPs work as expected.
     let character_style = MonoTextStyle::new(&FONT_9X18_BOLD, BinaryColor::Off);
