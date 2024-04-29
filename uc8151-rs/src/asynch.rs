@@ -6,9 +6,9 @@ use crate::LUT;
 use crate::WIDTH;
 use core::ops::Range;
 
-use embedded_hal_async::delay::DelayNs;
 use embedded_hal::digital::InputPin;
 use embedded_hal::digital::OutputPin;
+use embedded_hal_async::delay::DelayNs;
 use embedded_hal_async::spi::SpiDevice;
 
 #[cfg(feature = "graphics")]
@@ -119,11 +119,15 @@ where
         let _ = self.dc.set_low(); // command mode
         self.spi
             .write(&[reg as u8])
-            .await.map_err(|_| SpiDataError::SpiError)?;
+            .await
+            .map_err(|_| SpiDataError::SpiError)?;
 
         if !data.is_empty() {
             let _ = self.dc.set_high(); // data mode
-            self.spi.write(data).await.map_err(|_| SpiDataError::SpiError)?;
+            self.spi
+                .write(data)
+                .await
+                .map_err(|_| SpiDataError::SpiError)?;
         }
         Ok(())
     }
@@ -131,7 +135,10 @@ where
     /// Send data via SPI to the display
     pub async fn data(&mut self, data: &[u8]) -> Result<(), SpiDataError> {
         let _ = self.dc.set_high(); // data mode
-        self.spi.write(data).await.map_err(|_| SpiDataError::SpiError)?;
+        self.spi
+            .write(data)
+            .await
+            .map_err(|_| SpiDataError::SpiError)?;
         Ok(())
     }
 
@@ -141,18 +148,23 @@ where
         let _ = self.dc.set_low(); // command mode
         self.spi
             .write(&[Instruction::DTM2 as u8])
-            .await.map_err(|_| SpiDataError::SpiError)?;
+            .await
+            .map_err(|_| SpiDataError::SpiError)?;
 
         let _ = self.dc.set_high(); // data mode
         self.spi
             .write(&self.framebuffer)
-            .await.map_err(|_| SpiDataError::SpiError)?;
+            .await
+            .map_err(|_| SpiDataError::SpiError)?;
         Ok(())
     }
 
     /// Transmits a subset of the framebuffer via SPI.
     /// Call partial_update if you are looking to update a partial area of the display.
-    pub async fn transmit_framebuffer_range(&mut self, range: Range<usize>) -> Result<(), SpiDataError> {
+    pub async fn transmit_framebuffer_range(
+        &mut self,
+        range: Range<usize>,
+    ) -> Result<(), SpiDataError> {
         let framebuffer = match self.framebuffer.get(range) {
             Some(slice) => slice,
             None => return Err(SpiDataError::SpiError),
@@ -161,7 +173,8 @@ where
         let _ = self.dc.set_high(); // data mode
         self.spi
             .write(framebuffer)
-            .await.map_err(|_| SpiDataError::SpiError)?;
+            .await
+            .map_err(|_| SpiDataError::SpiError)?;
         Ok(())
     }
 
@@ -198,7 +211,8 @@ where
                 0b101011,
                 0b101011,
             ],
-        ).await?;
+        )
+        .await?;
         self.command(Instruction::PON, &[]).await?;
         while self.is_busy() {}
 
@@ -209,17 +223,21 @@ where
                 booster_flags::START_10MS | booster_flags::STRENGTH_3 | booster_flags::OFF_6_58US,
                 booster_flags::START_10MS | booster_flags::STRENGTH_3 | booster_flags::OFF_6_58US,
             ],
-        ).await?;
-        self.command(Instruction::PFS, &[pfs_flags::FRAMES_1]).await?;
+        )
+        .await?;
+        self.command(Instruction::PFS, &[pfs_flags::FRAMES_1])
+            .await?;
         self.command(
             Instruction::TSE,
             &[tse_flags::TEMP_INTERNAL | tse_flags::OFFSET_0],
-        ).await?;
+        )
+        .await?;
         self.command(Instruction::TCON, &[0x22]).await?;
 
         self.invert_colors(false).await?;
 
-        self.command(Instruction::PLL, &[self.get_lut().pll]).await?;
+        self.command(Instruction::PLL, &[self.get_lut().pll])
+            .await?;
 
         self.command(Instruction::POF, &[]).await?;
 
@@ -233,7 +251,8 @@ where
         self.command(
             Instruction::CDI,
             &[if inverted { 0b01_01_1100 } else { 0b01_00_1100 }],
-        ).await
+        )
+        .await
     }
     // There was a poweroff function that's just off without blocking
     // Won't add it until non-blocking mode added
@@ -273,7 +292,7 @@ where
         self.command(Instruction::DSP, &[]).await?; // data stop
 
         self.command(Instruction::DRF, &[]).await?; // start display refresh
-                                              // if blocking
+                                                    // if blocking
         while self.is_busy() {}
 
         self.command(Instruction::POF, &[]).await?; // turn off
@@ -307,7 +326,8 @@ where
                 ((x + width - 1) & 0xff) as u8,
                 1,
             ],
-        ).await?;
+        )
+        .await?;
 
         self.command(Instruction::DTM2, &[]).await?;
 
@@ -315,7 +335,8 @@ where
             let sx = dx + x;
             let sy = y1;
             let idx = (sy + (sx * (HEIGHT / 8))) as usize;
-            self.transmit_framebuffer_range(idx..(idx + columns)).await?;
+            self.transmit_framebuffer_range(idx..(idx + columns))
+                .await?;
         }
 
         self.command(Instruction::DSP, &[]).await?;
