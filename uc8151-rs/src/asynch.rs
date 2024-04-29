@@ -34,8 +34,8 @@ pub enum LUT {
     Ultrafast,
 }
 
-/// Uc8151_a driver
-pub struct Uc8151_a<SPI, DC, BUSY, RESET, DELAY> {
+/// Uc8151 driver
+pub struct Uc8151<SPI, DC, BUSY, RESET, DELAY> {
     framebuffer: [u8; FRAME_BUFFER_SIZE as usize],
     pub spi: SPI,
     pub dc: DC,
@@ -58,7 +58,7 @@ pub const WIDTH: u32 = 296;
 pub const HEIGHT: u32 = 128;
 const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
 
-impl<SPI, DC, BUSY, RESET, DELAY> Uc8151_a<SPI, DC, BUSY, RESET, DELAY>
+impl<SPI, DC, BUSY, RESET, DELAY> Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
     DC: OutputPin,
@@ -66,7 +66,7 @@ where
     RESET: OutputPin,
     DELAY: DelayNs,
 {
-    /// Create new Uc8151_a instance from the given SPI and GPIO pins
+    /// Create new Uc8151 instance from the given SPI and GPIO pins
     pub fn new(spi: SPI, dc: DC, busy: BUSY, reset_pin: RESET, delay: DELAY) -> Self {
         Self {
             framebuffer: [0; FRAME_BUFFER_SIZE as usize],
@@ -357,7 +357,7 @@ where
 }
 
 #[cfg(feature = "graphics")]
-impl<SPI, DC, BUSY, RESET, DELAY> DrawTarget for Uc8151_a<SPI, DC, BUSY, RESET, DELAY>
+impl<SPI, DC, BUSY, RESET, DELAY> DrawTarget for Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
     DC: OutputPin,
@@ -386,7 +386,7 @@ where
 }
 
 #[cfg(feature = "graphics")]
-impl<SPI, DC, BUSY, RESET, DELAY> OriginDimensions for Uc8151_a<SPI, DC, BUSY, RESET, DELAY>
+impl<SPI, DC, BUSY, RESET, DELAY> OriginDimensions for Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
     DC: OutputPin,
