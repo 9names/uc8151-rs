@@ -23,6 +23,7 @@ use embedded_graphics::{
     prelude::*,
     primitives::Rectangle,
 };
+use uc8151::blocking::Uc8151;
 use uc8151::{HEIGHT, WIDTH};
 
 #[entry]
@@ -77,7 +78,7 @@ fn main() -> ! {
 
     let spi_dev = ExclusiveDevice::new(spi, cs, timer.clone()).unwrap();
 
-    let mut display = uc8151::Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
+    let mut display = Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
 
     // Initialise display. Using the default LUT speed setting
     let _ = display.setup(uc8151::LUT::Internal);

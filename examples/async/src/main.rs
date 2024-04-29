@@ -28,8 +28,8 @@ use embedded_text::{
 };
 use gpio::{Level, Output, Pull};
 use tinybmp::Bmp;
-use uc8151::asynch::Uc8151_a;
-use uc8151::asynch::LUT;
+use uc8151::asynch::Uc8151;
+use uc8151::LUT;
 use uc8151::WIDTH;
 use {defmt_rtt as _, panic_probe as _};
 static FERRIS_IMG: &[u8; 2622] = include_bytes!("../ferris_1bpp.bmp");
@@ -86,7 +86,7 @@ async fn main(_spawner: Spawner) {
     );
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(spi);
     let spi_dev = SpiDevice::new(&spi_bus, cs);
-    let mut display = Uc8151_a::new(spi_dev, dc, busy, reset, Delay);
+    let mut display = Uc8151::new(spi_dev, dc, busy, reset, Delay);
     display.reset().await;
 
     // Initialise display. Using the default LUT speed setting
