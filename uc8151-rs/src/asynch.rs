@@ -1,5 +1,3 @@
-#[allow(warnings)]
-
 use crate::constants::*;
 use core::ops::Range;
 

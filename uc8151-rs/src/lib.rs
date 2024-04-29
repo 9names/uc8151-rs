@@ -14,4 +14,3 @@ pub mod constants;
 pub const WIDTH: u32 = 296;
 /// Height of the screen in pixels
 pub const HEIGHT: u32 = 128;
-const FRAME_BUFFER_SIZE: u32 = (WIDTH * HEIGHT) / 8;
