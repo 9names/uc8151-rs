@@ -9,6 +9,7 @@ use core::ops::Range;
 use embedded_hal::digital::InputPin;
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::delay::DelayNs;
+use embedded_hal_async::digital::Wait;
 use embedded_hal_async::spi::SpiDevice;
 
 #[cfg(feature = "graphics")]
@@ -36,7 +37,7 @@ impl<SPI, DC, BUSY, RESET, DELAY> Uc8151<SPI, DC, BUSY, RESET, DELAY>
 where
     SPI: SpiDevice,
     DC: OutputPin,
-    BUSY: InputPin,
+    BUSY: InputPin + Wait,
     RESET: OutputPin,
     DELAY: DelayNs,
 {
@@ -70,6 +71,11 @@ where
         self.busy.is_low().unwrap_or(true)
     }
 
+    /// Wait until the display controller is not busy before continuing
+    pub async fn wait_while_busy(&mut self) {
+        let _ = self.busy.wait_for_high().await;
+    }
+
     /// Return the currently selected LUT
     pub fn get_lut(&self) -> &'static Lut {
         match self.lut {
@@ -99,7 +105,6 @@ where
         self.command(Instruction::LUT_WB, &lut.wb).await?;
         self.command(Instruction::LUT_BB, &lut.bb).await?;
 
-        while self.is_busy() {}
         Ok(())
     }
 
@@ -111,7 +116,7 @@ where
         self.delay.delay_us(10_000).await;
 
         // Wait until the screen is finished initialising before returning
-        while self.is_busy() {}
+        self.wait_while_busy().await;
     }
 
     /// Send command via SPI to the display
@@ -214,7 +219,7 @@ where
         )
         .await?;
         self.command(Instruction::PON, &[]).await?;
-        while self.is_busy() {}
+        self.wait_while_busy().await;
 
         self.command(
             Instruction::BTST,
@@ -241,7 +246,7 @@ where
 
         self.command(Instruction::POF, &[]).await?;
 
-        while self.is_busy() {}
+        self.wait_while_busy().await;
         Ok(())
     }
 
@@ -259,7 +264,7 @@ where
 
     /// Ask the display to power itself off
     pub async fn off(&mut self) -> Result<(), SpiDataError> {
-        while self.is_busy() {}
+        self.wait_while_busy().await;
         self.command(Instruction::POF, &[]).await?;
         Ok(())
     }
@@ -281,8 +286,7 @@ where
 
     /// Refresh the display with what is in the framebuffer
     pub async fn update(&mut self) -> Result<(), SpiDataError> {
-        // if blocking
-        while self.is_busy() {}
+        self.wait_while_busy().await;
 
         self.command(Instruction::PON, &[]).await?; // turn on
         self.command(Instruction::PTOU, &[]).await?; // disable partial mode
@@ -292,8 +296,8 @@ where
         self.command(Instruction::DSP, &[]).await?; // data stop
 
         self.command(Instruction::DRF, &[]).await?; // start display refresh
-                                                    // if blocking
-        while self.is_busy() {}
+
+        self.wait_while_busy().await;
 
         self.command(Instruction::POF, &[]).await?; // turn off
         Ok(())
@@ -303,8 +307,7 @@ where
     pub async fn partial_update(&mut self, region: UpdateRegion) -> Result<(), SpiDataError> {
         #![allow(clippy::cast_possible_truncation)]
 
-        // if blocking
-        while self.is_busy() {}
+        self.wait_while_busy().await;
 
         let height = region.height;
         let width = region.width;
@@ -343,7 +346,7 @@ where
 
         self.command(Instruction::DRF, &[]).await?;
 
-        while self.is_busy() {}
+        self.wait_while_busy().await;
 
         self.command(Instruction::POF, &[]).await?; // turn off
 
@@ -356,7 +359,7 @@ impl<SPI, DC, BUSY, RESET, DELAY> DrawTarget for Uc8151<SPI, DC, BUSY, RESET, DE
 where
     SPI: SpiDevice,
     DC: OutputPin,
-    BUSY: InputPin,
+    BUSY: InputPin + Wait,
     RESET: OutputPin,
     DELAY: DelayNs,
 {

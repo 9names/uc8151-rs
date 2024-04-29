@@ -70,6 +70,11 @@ where
         self.busy.is_low().unwrap_or(true)
     }
 
+    /// Wait until the display controller is not busy before continuing
+    pub fn wait_while_busy(&mut self) {
+        while self.is_busy() {}
+    }
+
     /// Return the currently selected LUT
     pub fn get_lut(&self) -> &'static Lut {
         match self.lut {
@@ -99,7 +104,7 @@ where
         self.command(Instruction::LUT_WB, &lut.wb)?;
         self.command(Instruction::LUT_BB, &lut.bb)?;
 
-        while self.is_busy() {}
+        self.wait_while_busy();
         Ok(())
     }
 
@@ -111,7 +116,7 @@ where
         self.delay.delay_us(10_000);
 
         // Wait until the screen is finished initialising before returning
-        while self.is_busy() {}
+        self.wait_while_busy();
     }
 
     /// Send command via SPI to the display
@@ -200,7 +205,7 @@ where
             ],
         )?;
         self.command(Instruction::PON, &[])?;
-        while self.is_busy() {}
+        self.wait_while_busy();
 
         self.command(
             Instruction::BTST,
@@ -223,7 +228,7 @@ where
 
         self.command(Instruction::POF, &[])?;
 
-        while self.is_busy() {}
+        self.wait_while_busy();
         Ok(())
     }
 
@@ -240,7 +245,7 @@ where
 
     /// Ask the display to power itself off
     pub fn off(&mut self) -> Result<(), SpiDataError> {
-        while self.is_busy() {}
+        self.wait_while_busy();
         self.command(Instruction::POF, &[])?;
         Ok(())
     }
@@ -262,8 +267,7 @@ where
 
     /// Refresh the display with what is in the framebuffer
     pub fn update(&mut self) -> Result<(), SpiDataError> {
-        // if blocking
-        while self.is_busy() {}
+        self.wait_while_busy();
 
         self.command(Instruction::PON, &[])?; // turn on
         self.command(Instruction::PTOU, &[])?; // disable partial mode
@@ -273,8 +277,8 @@ where
         self.command(Instruction::DSP, &[])?; // data stop
 
         self.command(Instruction::DRF, &[])?; // start display refresh
-                                              // if blocking
-        while self.is_busy() {}
+
+        self.wait_while_busy();
 
         self.command(Instruction::POF, &[])?; // turn off
         Ok(())
@@ -283,9 +287,7 @@ where
     /// Peform a partial refresh of the display over the area defined by the `DisplayRegion`.
     pub fn partial_update(&mut self, region: UpdateRegion) -> Result<(), SpiDataError> {
         #![allow(clippy::cast_possible_truncation)]
-
-        // if blocking
-        while self.is_busy() {}
+        self.wait_while_busy();
 
         let height = region.height;
         let width = region.width;
@@ -322,7 +324,7 @@ where
 
         self.command(Instruction::DRF, &[])?;
 
-        while self.is_busy() {}
+        self.wait_while_busy();
 
         self.command(Instruction::POF, &[])?; // turn off
 
