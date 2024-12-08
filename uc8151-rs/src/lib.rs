@@ -11,6 +11,7 @@ use embedded_graphics_core::primitives::Rectangle;
 
 #[allow(warnings)]
 mod constants;
+mod greyscale;
 mod lut;
 use constants::*;
 use core::ops::Index;

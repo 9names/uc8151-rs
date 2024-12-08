@@ -7,16 +7,17 @@ use core::fmt;
 /// than the official documentation.
 
 #[derive(Debug)]
-struct VComLut {
+pub(crate) struct VComLut {
     pub lut: [u8; 44],
 }
 
 #[derive(Debug)]
-struct TransitionLut {
+pub(crate) struct TransitionLut {
     pub lut: [u8; 42],
 }
 
-struct CustomLut {
+#[derive(Debug)]
+pub(crate) struct CustomLut {
     pub vcom: VComLut,
     pub ww: TransitionLut,
     pub bw: TransitionLut,
@@ -37,7 +38,7 @@ enum Lut {
 
 impl CustomLut {
     /// Set a given row in a waveform lookup table.  
-    /// 
+    ///
     /// Lookup tables are 6 rows per 7 cols, like in this example:  
     /// ```no_run
     /// 0x40, 0x17, 0x00, 0x00, 0x00, 0x02,  <- step 0  
@@ -75,7 +76,7 @@ impl CustomLut {
     }
 
     /// This function sets the lookup tables used during the display refresh.
-    /// 
+    ///
     /// Before reading it, it's a good idea to understand how LUTs are encoded:  
     /// We have a table for each transition possible:
     /// white -> white (WW)
@@ -118,7 +119,7 @@ impl CustomLut {
     /// Then the next four bytes in the row mean how many
     /// "frames" we hold a given state (the frame duration depends on the
     /// frequency set in the PLL, here we configure it to 100 HZ so 10ms).
-    /// 
+    ///
     /// So in the above case: hold pixel at VDH for 2 frames, then
     /// hold at VDL for 2 frame. The last two entries say 0 frames,
     /// so they are not used. The final byte in the row, 0x01, means
@@ -134,7 +135,7 @@ impl CustomLut {
     /// The VCOM table has two additional bytes at the end.
     /// The meaning of these bytes apparently is the following (but I'm not
     /// really sure what they mean):
-    /// 
+    ///
     /// First additional byte: ST_XON, if (1<<step) bit is set, for
     /// that step all gates are on. Second byte: ST_CHV. Like ST_XON
     /// but if (1<<step) bit is set, VCOM voltage is set to high for this step.
@@ -145,11 +146,7 @@ impl CustomLut {
         if speed > 6 {
             panic!("Speed must be set between 1 and 6");
         }
-        let speed = if speed < 1 {
-            1
-        } else {
-            speed
-        };
+        let speed = if speed < 1 { 1 } else { speed };
 
         // Those periods are powers of two so that each successive 'speed'
         // value cuts them in half cleanly.
@@ -157,7 +154,7 @@ impl CustomLut {
         let hperiod = period / 2; // Num. of frames for back-and-forth change.
 
         // core doesn't have pow, do a simple looping lambda version
-        let pow = |mut x:i32, v| {
+        let pow = |mut x: i32, v| {
             if v == 0 {
                 1
             } else {
@@ -171,32 +168,37 @@ impl CustomLut {
                 }
             }
         };
-        
+
         // Actual period is scaled by the speed factor
-        let period: u8 = core::cmp::max(period / pow(2, speed - 1), 1).try_into().unwrap();
-        let hperiod: u8 = core::cmp::max(hperiod / pow(2, speed - 1), 1).try_into().unwrap();
+        let period: u8 = core::cmp::max(period / pow(2, speed - 1), 1)
+            .try_into()
+            .unwrap();
+        let hperiod: u8 = core::cmp::max(hperiod / pow(2, speed - 1), 1)
+            .try_into()
+            .unwrap();
         if speed <= 3 && !no_flickering {
             // For low speed everything is charge-neutral, even WB/BW.
 
             // Phase 1: long go-inverted-color.
-            self.set_lut_row(Lut::vc,0,0b00_000000,[period,0,0,0],2);
-            self.set_lut_row(Lut::bw,0,0b01_000000,[period,0,0,0],2);
-            self.set_lut_row(Lut::wb,0,0b10_000000,[period,0,0,0],2);
+            self.set_lut_row(Lut::vc, 0, 0b00_000000, [period, 0, 0, 0], 2);
+            self.set_lut_row(Lut::bw, 0, 0b01_000000, [period, 0, 0, 0], 2);
+            self.set_lut_row(Lut::wb, 0, 0b10_000000, [period, 0, 0, 0], 2);
 
             // Phase 2: short ping/pong.
-            self.set_lut_row(Lut::vc,1,0b00_00_0000,[hperiod,hperiod,0,0],2);
-            self.set_lut_row(Lut::bw,1,0b10_01_0000,[hperiod,hperiod,0,0],1);
-            self.set_lut_row(Lut::wb,1,0b01_10_0000,[hperiod,hperiod,0,0],1);
+            self.set_lut_row(Lut::vc, 1, 0b00_00_0000, [hperiod, hperiod, 0, 0], 2);
+            self.set_lut_row(Lut::bw, 1, 0b10_01_0000, [hperiod, hperiod, 0, 0], 1);
+            self.set_lut_row(Lut::wb, 1, 0b01_10_0000, [hperiod, hperiod, 0, 0], 1);
 
             // Phase 3: long go-target-color.
-            self.set_lut_row(Lut::vc,2,0b00_000000,[period,0,0,0],2);
-            self.set_lut_row(Lut::bw,2,0b10_000000,[period,0,0,0],2);
-            self.set_lut_row(Lut::wb,2,0b01_000000,[period,0,0,0],2);
+            self.set_lut_row(Lut::vc, 2, 0b00_000000, [period, 0, 0, 0], 2);
+            self.set_lut_row(Lut::bw, 2, 0b10_000000, [period, 0, 0, 0], 2);
+            self.set_lut_row(Lut::wb, 2, 0b01_000000, [period, 0, 0, 0], 2);
             // For this speed, we use the same LUTs for WW/BB as well. We
             // will clear it for no flickering modes.
             self.ww.lut = self.bw.lut;
             self.bb.lut = self.wb.lut;
-        } else { // Speed > 3
+        } else {
+            // Speed > 3
             // For greater than 3 we use non charge-neutral LUTs for WB/BW
             // since the inpulse is short and it gets reversed when the
             // pixel changes color, so that's not a problem for the display,
@@ -205,11 +207,11 @@ impl CustomLut {
             // Phase 1 for BW/WB. Just go to target color.
             // Phase 1 for WW/BB. Invert, go back.
             let p = period;
-            self.set_lut_row(Lut::vc,0,0b00_00_00_00,[p*4,0,0,0],1);
-            self.set_lut_row(Lut::bw,0,0b10_00_00_00,[p*4,0,0,0],1);
-            self.set_lut_row(Lut::wb,0,0b01_00_00_00,[p*4,0,0,0],1);
-            self.set_lut_row(Lut::ww,0,0b01_10_00_00,[p*2,p*2,0,0],1);
-            self.set_lut_row(Lut::bb,0,0b10_01_00_00,[p*2,p*2,0,0],1);
+            self.set_lut_row(Lut::vc, 0, 0b00_00_00_00, [p * 4, 0, 0, 0], 1);
+            self.set_lut_row(Lut::bw, 0, 0b10_00_00_00, [p * 4, 0, 0, 0], 1);
+            self.set_lut_row(Lut::wb, 0, 0b01_00_00_00, [p * 4, 0, 0, 0], 1);
+            self.set_lut_row(Lut::ww, 0, 0b01_10_00_00, [p * 2, p * 2, 0, 0], 1);
+            self.set_lut_row(Lut::bb, 0, 0b10_01_00_00, [p * 2, p * 2, 0, 0], 1);
 
             // If no flickering mode is enabled, we use an empty
             // waveform BB and WW. The screen will be fully refreshed every
@@ -231,8 +233,6 @@ impl CustomLut {
     }
 }
 
-
-
 impl fmt::Display for VComLut {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.lut)
@@ -247,6 +247,10 @@ impl fmt::Display for TransitionLut {
 
 impl fmt::Display for CustomLut {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "vcom: {}\nww: {}\nbw: {}\nwb: {}\nbb: {}\n", self.vcom, self.ww, self.bw, self.wb, self.bb)
+        write!(
+            f,
+            "vcom: {}\nww: {}\nbw: {}\nwb: {}\nbb: {}\n",
+            self.vcom, self.ww, self.bw, self.wb, self.bb
+        )
     }
 }
