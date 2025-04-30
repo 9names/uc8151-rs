@@ -3,7 +3,7 @@ name: Cargo Build & Test
 jobs:
   build_and_test:
     name: Build and test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: uc8151-rs
