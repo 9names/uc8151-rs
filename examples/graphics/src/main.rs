@@ -83,9 +83,9 @@ fn main() -> ! {
     dc.set_high().unwrap();
     cs.set_high().unwrap();
 
-    let spi_dev = ExclusiveDevice::new(spi, cs, timer.clone()).unwrap();
+    let spi_dev = ExclusiveDevice::new(spi, cs, timer).unwrap();
 
-    let mut display = Uc8151::new(spi_dev, dc, busy, reset, timer.clone());
+    let mut display = Uc8151::new(spi_dev, dc, busy, reset, timer);
 
     // Reset display
     display.reset();

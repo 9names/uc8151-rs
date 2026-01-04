@@ -20,7 +20,6 @@ use embedded_graphics::{
     prelude::*,
     primitives::{PrimitiveStyle, Rectangle},
 };
-use embedded_hal_bus::spi::ExclusiveDevice;
 use embedded_text::{
     alignment::HorizontalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
@@ -47,8 +46,8 @@ async fn main(_spawner: Spawner) {
     let miso = p.PIN_16;
     let mosi = p.PIN_19;
     let clk = p.PIN_18;
-    let mut dc = p.PIN_20;
-    let mut cs = p.PIN_17;
+    let dc = p.PIN_20;
+    let cs = p.PIN_17;
     let busy = p.PIN_26;
     let reset = p.PIN_21;
     let power = p.PIN_10;
@@ -62,18 +61,18 @@ async fn main(_spawner: Spawner) {
     let led = p.PIN_25;
 
     let reset = Output::new(reset, Level::Low);
-    let power = Output::new(power, Level::Low);
+    let _power = Output::new(power, Level::Low);
 
     let dc = Output::new(dc, Level::Low);
     let cs = Output::new(cs, Level::High);
-    let mut busy = Input::new(busy, Pull::Up);
+    let busy = Input::new(busy, Pull::Up);
 
     let mut led = Output::new(led, Level::Low);
-    let mut btn_up = Input::new(btn_up, Pull::Up);
-    let mut btn_down = Input::new(btn_down, Pull::Up);
-    let mut btn_a = Input::new(btn_a, Pull::Up);
-    let mut btn_b = Input::new(btn_b, Pull::Up);
-    let mut btn_c = Input::new(btn_c, Pull::Up);
+    let _btn_up = Input::new(btn_up, Pull::Up);
+    let _btn_down = Input::new(btn_down, Pull::Up);
+    let _btn_a = Input::new(btn_a, Pull::Up);
+    let _btn_b = Input::new(btn_b, Pull::Up);
+    let _btn_c = Input::new(btn_c, Pull::Up);
 
     let spi = Spi::new(
         p.SPI0,

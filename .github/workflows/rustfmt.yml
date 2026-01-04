@@ -4,15 +4,22 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        project:
+          - uc8151-rs
+          - examples/async
+          - examples/graphics
+          - examples/partial_update
     defaults:
       run:
-        working-directory: uc8151-rs
+        working-directory: ${{ matrix.project }}
     env:
       RUSTFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v6
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: thumbv6m-none-eabi
+          target: x86_64-unknown-linux-gnu,thumbv6m-none-eabi
           components: rustfmt
       - run: cargo fmt -- --check
