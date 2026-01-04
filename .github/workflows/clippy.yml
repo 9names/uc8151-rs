@@ -4,9 +4,16 @@ jobs:
   clippy_check:
     name: Run Clippy
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        project:
+          - uc8151-rs
+          - examples/async
+          - examples/graphics
+          - examples/partial_update
     defaults:
       run:
-        working-directory: uc8151-rs
+        working-directory: ${{ matrix.project }}
     env:
       RUSTFLAGS: "-D warnings"
     steps:
@@ -15,4 +22,9 @@ jobs:
         with:
           target: thumbv6m-none-eabi
           components: clippy
-      - run: cargo clippy
+      - name: Run Clippy on library
+        if: matrix.project == 'uc8151-rs'
+        run: cargo clippy
+      - name: Run Clippy on example
+        if: matrix.project != 'uc8151-rs'
+        run: cargo clippy --target thumbv6m-none-eabi

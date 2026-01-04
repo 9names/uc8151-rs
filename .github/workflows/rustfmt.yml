@@ -4,9 +4,16 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        project:
+          - uc8151-rs
+          - examples/async
+          - examples/graphics
+          - examples/partial_update
     defaults:
       run:
-        working-directory: uc8151-rs
+        working-directory: ${{ matrix.project }}
     env:
       RUSTFLAGS: "-D warnings"
     steps:
