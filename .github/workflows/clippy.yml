@@ -24,7 +24,7 @@ jobs:
           components: clippy
       - name: Run Clippy on library
         if: matrix.project == 'uc8151-rs'
-        run: cargo clippy
+        run: rustup component add clippy && cargo clippy
       - name: Run Clippy on example
         if: matrix.project != 'uc8151-rs'
-        run: cargo clippy --target thumbv6m-none-eabi
+        run: rustup component add clippy && cargo clippy --target thumbv6m-none-eabi
