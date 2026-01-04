@@ -17,9 +17,13 @@ jobs:
       run:
         working-directory: ${{ matrix.project }}
     steps:
-      - uses: actions/checkout@v4
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: rustup target add thumbv6m-none-eabi
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.92.0"
+          target: x86_64-unknown-linux-gnu,thumbv6m-none-eabi
+      # - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      # - run: rustup target add thumbv6m-none-eabi
       - name: Build library
         if: matrix.project == 'uc8151-rs'
         run: cargo build --verbose
